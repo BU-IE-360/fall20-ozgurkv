@@ -6,4 +6,4 @@ As Albert Einstein said:
 > *I am only passionately curious.*
 
 ### Week 0 (29.10.2020)
-You can reach my homework regarding time series forecasting methods by clicking [here](Files/example_homework_0.html).
+You can reach my homework regarding time series forecasting methods by clicking [**here**](Files/example_homework_0.html).
