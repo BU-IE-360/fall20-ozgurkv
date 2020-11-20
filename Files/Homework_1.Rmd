@@ -1,0 +1,197 @@
+---
+title: "Interpretation of Data by Using Google Trends"
+author: "Ozgur Kaan Varlik"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(ggplot2)
+library(viridis)
+library(readr)
+Car_Market_CSV_in_rows <- read_csv("Car Market CSV - in rows.csv")
+Tourism_Income_CSV <- read_csv("Tourism Income CSV.csv")
+Euro_CSV <- read_csv("Euro CSV.csv")
+```
+
+### Examining the Monthly Data about the Car Market in Turkey
+
+This data set will give us an insight into the car market of Turkey, in that by inspecting the data, we might have a better understanding of how the car market functions nationally. The data consists of monthly retail car sales from January 2010 until October 2020. More information regarding not only national, but also global car sales can be found by visiting the website of [ODD](http://www.odd.org.tr/web_2837_1/index.aspx).
+
+```{r}
+car_linegraph_years <- ggplot(Car_Market_CSV_in_rows,aes(index,Number,col = Month)) + geom_line(size = 1) +
+  scale_color_viridis(option = "B") + scale_x_continuous(breaks = seq(2010, 2020, 1)) +
+  labs(title="Monthly Retail Car Sales from January 2010 until October 2020", x = "Time (in Years)", y = "Car Sales") +
+  theme(plot.title=element_text(hjust=0.5),axis.line = element_line(colour = "black", size=1))
+car_linegraph_years
+
+```
+
+By examining the graph, we can see the effect of seasonality to some extent, in that usually by the end of each year, there appears to be a significant increase in sales. This is most probably due to the expectation of a tax increase in the beginning of next year, which also finds a degree of support if we look at the sales right in the first months of each year. Except for the 2020, data from all the previous years shows that the lowest figures were obtained consistently in January and the highest in December.
+
+```{r}
+carhist_years <- ggplot(Car_Market_CSV_in_rows,aes(x=Number, y=..density..)) + geom_histogram(binwidth = 5000, col="black",fill="purple") + geom_density(fill="orange",alpha=0.5, size=0.5) +
+  facet_wrap(~Year, nrow=3) + scale_x_continuous() +
+  labs(title="Historgrams of Monthly Retail Car Sales",x = "Car Sales")+
+  theme(plot.title=element_text(hjust=0.5),axis.line = element_line(colour = "black", size=0.5),axis.text.x = element_text(angle = 45, vjust =1, hjust=1))
+carhist_years
+```
+
+By looking at the histograms, we can observe some kind of change in the distribution of the data as the time progresses. In the fist several years, until the end of 2014 to be clear, the data seems to fit in a normally distributed model. But after 2014, one can notice a trend towards a more flattened curve. Actually the last three years signal a shift to the left, which means there is a decrease in car sales. This situation might be due to the rapid depreciation of the Turkish Lira over the last couple years.
+
+```{r}
+carboxplot_years <- ggplot(Car_Market_CSV_in_rows,aes(Year,Number)) + geom_boxplot(aes(group=Year), fill="red", size=0.8) + 
+  scale_x_continuous(breaks=seq(2010, 2020, 1)) + geom_jitter(width=0.1,alpha=0.2) +
+  labs(title="Boxplots of Monthly Retail Car Sales from 2010 to 2020",x="Time (in Years)", y="Car Sales")+
+  theme(plot.title=element_text(hjust=0.5),axis.line = element_line(colour = "black", size=0.5),axis.text.x = element_text(angle = 45, vjust =1, hjust=1))
+carboxplot_years
+```
+
+By looking at the boxplots, we might gain a different perspective of the situation. It seems that although the sales figures are rather consistent with only a couple of outliers in the early years, in time, it seems that they have become more and more unstable, resulting in much longer boxplots. We can also see an increasing trend until the year 2017, nevertheless, there appears to be a steep decrease over the following 2 years. It is worth mentioning that 2020 is looking like a much better year in terms of sales.
+
+```{r}
+carboxplot_term <- ggplot(Car_Market_CSV_in_rows ,aes(Year,arac_kampanya)) + geom_boxplot(aes(group=Year), fill="red", size=0.8) + 
+  scale_x_continuous(breaks=seq(2010, 2020, 1)) + geom_jitter(width=0.1,alpha=0.2) +
+  labs(title="Boxplots of the Search Volumes of ''Araç Kampanya'' from 2010 to 2020",x="Time (in Years)", y="Proportional Search Volumes")+
+  theme(plot.title=element_text(hjust=0.5),axis.line = element_line(colour = "black", size=0.5),axis.text.x = element_text(angle = 45, vjust =1, hjust=1))
+carboxplot_term
+```
+
+Google Trends data regarding the word "Arac Kampanya" is an interesting example, in that there appears to be some kind of correlation between this and the actual sales figures, at least until 2017. For example, we can see an increasing trend and condensed boxplots in the early years, whereas the data from the last several years seem to be more scattered. However, although the search volumes can be fitted into an ever increasing trend, same cannot be said about the sales. This is probably due to increasing foreign currency rates and tax raises. 
+
+```{r}
+aracvergi_linegraph_years <- ggplot(Car_Market_CSV_in_rows,aes(index,arac_kampanya,col = Month)) + geom_line(size = 1) +
+  scale_color_viridis(option = "D") + scale_x_continuous(breaks = seq(2010, 2020, 1)) +
+  labs(title="Line Graph of the Search Volumes of ''Araç Kampanya'' from 2010 to 2020", x = "Time (in Years)", y = "Proportional Search Volumes") +
+  theme(plot.title=element_text(hjust=0.5),axis.line = element_line(colour = "black", size=1))
+aracvergi_linegraph_years
+```
+
+It is worth taking a look at this graph because of an intriguing situation. In almost every year, the search volumes seem to peak just before December, namely in October or November. When compared with the graph of the sales figures, it appears they might be correlated after all, since the the sales usually peak in December, just before the beginning of the new year. So, can one conclude that this increase is due to the result of campaigns? It is possible that they have an impact, but one also has to keep in mind the expectation of the tax raises.
+
+### Tourism Income of Turkey: A Brief Look
+
+With this data set, we will be taking a closer look into the tourism industry and comparing the data we have to the Google Trends data to see if we can make any type of correlation between the two. The specific data frame utilized here consists of monthly tourism income of Turkey from January 2012 until September 2020. More data regarding the tourism industry and many more topics like the population and demographics, unemployment rates, elections can be found on the website of [TUIK](https://www.tuik.gov.tr/).
+
+```{r}
+tourism_graph_years <- ggplot(Tourism_Income_CSV,aes(index,Tourist_Income,col = Month)) + geom_line(size = 1) +
+  scale_color_viridis(option = "C") + scale_x_continuous(breaks = seq(2010, 2020, 1)) +
+  labs(title="Monthly Tourism Income of Turkey from January 2012 until September 2020", x = "Time (in Years)", y = "Tourism Income (in 000 $)") +
+  theme(plot.title=element_text(hjust=0.5),axis.line = element_line(colour = "black", size=1))
+tourism_graph_years
+```
+
+As it can easily be seen, the impact of seasonality is pretty strong on the data. We can conclude that Turkey does better in summer months since its tourism income is significantly higher in June, July and August consistently. Also something peculiar to notice about the graph is that tourism income seems rather low in 2016 compared to other years. This is most probably due to the increasing number of terrorist attacks in major cities of Turkey in 2016. Because of this it appears that a number of people opt not to go on a vacation in Turkey.
+
+```{r}
+tourismhist_years <- ggplot(Tourism_Income_CSV,aes(x=Tourist_Income, y=..density..)) + geom_histogram(binwidth = 300000, col="black",fill="yellow") + geom_density(fill="magenta",alpha=0.5, size=0.5) +
+  facet_wrap(~Year, nrow=3) + scale_x_continuous() +
+  labs(title="Historgrams of Monthly Tourism Income",x = "Tourism Income (in 000 $)")+
+  theme(plot.title=element_text(hjust=0.5),axis.line = element_line(colour = "black", size=0.5),axis.text.x = element_text(angle = 45, vjust =1, hjust=1))
+tourismhist_years
+```
+
+The histograms show us that the distribution of the data is mostly consistent over the years. However, as we have mentioned above, because of the low demand in 2016, the distribution seems to have shifted left. Also the year 2020 is not over, but due to the pandemic it is safe to say that it is going to be a disappointing year for the tourism industry in Turkey.
+
+```{r}
+tourismboxplot_years <- ggplot(Tourism_Income_CSV,aes(Year,Tourist_Income)) + geom_boxplot(aes(group=Year), fill="purple", size=0.8) + 
+  scale_x_continuous(breaks=seq(2010, 2020, 1)) + geom_jitter(width=0.1,alpha=0.2) +
+  labs(title="Boxplots of Monthly Tourism Income from 2012 to 2020",x="Time (in Years)", y="Tourism Income (in 000 $)")+
+  theme(plot.title=element_text(hjust=0.5),axis.line = element_line(colour = "black", size=0.5),axis.text.x = element_text(angle = 45, vjust =1, hjust=1))
+tourismboxplot_years
+```
+
+Looking at the boxplots, it should be noticed that tourism income varies greatly during the year, this is because Turkey has many famous summer vacation destinations; however, it is not best known for its winter vacation spots. Also, we can say that the tourism income seems rather stable over the years, excluding 2016 and 2020.
+
+```{r}
+tourismboxplot_term <- ggplot(Tourism_Income_CSV,aes(Year,Otel)) + geom_boxplot(aes(group=Year), fill="purple", size=0.8) + 
+  scale_x_continuous(breaks=seq(2010, 2020, 1)) + geom_jitter(width=0.1,alpha=0.2) +
+  labs(title="Boxplots of the Search Volumes of ''Otel'' from 2012 to 2020",x="Time (in Years)", y="Proportional Search Volumes")+
+  theme(plot.title=element_text(hjust=0.5),axis.line = element_line(colour = "black", size=0.5),axis.text.x = element_text(angle = 45, vjust =1, hjust=1))
+tourismboxplot_term
+```
+
+The search volumes of the word "Otel" tells a similar story. The volume appears stable over the years but each year with some outliers. This might be due to the increasing search for hotel reservations in the summer. Also, the search volume is pretty low in 2020 compared to other years, complying with the results from the boxplots above. However, although the two boxplots seem to tell a similar story as a whole, one should consider that the actual tourist income ranges greatly compared to the search volumes, resulting in significantly longer boxplots.
+
+```{r}
+tourismboxplot_term2 <- ggplot(Tourism_Income_CSV,aes(Year,Erken_Rezervasyon)) + geom_boxplot(aes(group=Year), fill="magenta", size=0.8) + 
+  scale_x_continuous(breaks=seq(2010, 2020, 1)) + geom_jitter(width=0.1,alpha=0.2) +
+  labs(title="Boxplots of the Search Volumes of ''Erken Rezervasyon'' from 2012 to 2020",x="Time (in Years)", y="Proportional Search Volumes")+
+  theme(plot.title=element_text(hjust=0.5),axis.line = element_line(colour = "black", size=0.5),axis.text.x = element_text(angle = 45, vjust =1, hjust=1))
+tourismboxplot_term2
+```
+
+An interesting example to consider is the search volume of the word group "Erken Rezervasyon". It appears that although we don't see a really evident decrease besides the year 2020, there is a slight decreasing trend. Moreover, it can be seen that the search volume has decreased in 2016. Probably due to the concerns stemming from the terrorist attacks, a number of people have did not opt for an early reservation.
+
+```{r}
+tourism_graph_years <- ggplot(Tourism_Income_CSV,aes(index,Erken_Rezervasyon,col = Month)) + geom_line(size = 1) +
+  scale_color_viridis(option = "C") + scale_x_continuous(breaks = seq(2010, 2020, 1)) +
+  labs(title="Line Graph of the Search Volumes of ''Erken Rezervasyon'' from 2012 to 2020", x = "Time (in Years)", y = "Proportional Search Volumes") +
+  theme(plot.title=element_text(hjust=0.5),axis.line = element_line(colour = "black", size=1))
+tourism_graph_years
+```
+
+It is worth mentioning that, when we take a look at the line graph of the search volumes of "Erken Rezervasyon", we can see the effects of seasonality; however, resulting in higher results different months.
+
+### Exploring the Behaviour of Exchange Rates over a Period of Time
+
+Now we are entering the final part of this homework by inspecting the change in an exchange rate, specifically the rate of Euro to TL. The data we are dealing with was taken from the website of [TCMB](https://www.tcmb.gov.tr/), where you can find various other statistics regarding banking data, other exchange rates, interest rates etc.
+
+```{r}
+euro_graph_years <- ggplot(Euro_CSV,aes(index,Euro,col = Month)) + geom_line(size = 1) +
+  scale_color_viridis(option = "D") + scale_x_continuous(breaks = seq(2010, 2020, 1)) +
+  labs(title="Monthly Rate Average for Euro to TL from January 2012 until October 2020", x = "Time (in Years)", y = "Exchange Rate (in TL)") +
+  theme(plot.title=element_text(hjust=0.5),axis.line = element_line(colour = "black", size=1))
+euro_graph_years
+```
+
+At first glance, one can easily see that there is a continuous increasing trend in the data. With time, it appears that the increase has become more and more rapid. Furthermore, the very steep rise and fall of the rate in 2018 seem rather unusual. This might be due to the increasing political tension, the elections and the mistrust in the Ministry of Economy during that time.
+
+```{r}
+eurohist_years <- ggplot(Euro_CSV,aes(x=Euro)) + geom_histogram(binwidth = 0.3, col="black",fill="green")  +
+  facet_wrap(~Year, nrow=3) + scale_x_continuous() +
+  labs(title="Historgrams of Monthly Rate Average for Euro to TL",x = "Exchange Rate (in TL)")+
+  theme(plot.title=element_text(hjust=0.5),axis.line = element_line(colour = "black", size=0.5),axis.text.x = element_text(angle = 45, vjust =1, hjust=1))
+eurohist_years
+```
+
+By looking at the histograms, one can say that the increase over the years seems very evident. Also, the bins are getting more and more scattered over the years with the most scattered ones being in 2018 and 2020, which signals that the rate has changed significantly during those years. 
+
+```{r}
+euroboxplot_years <- ggplot(Euro_CSV,aes(Year,Euro)) + geom_boxplot(aes(group=Year), fill="cyan", size=0.8) + 
+  scale_x_continuous(breaks=seq(2010, 2020, 1)) + geom_jitter(width=0.1,alpha=0.2) +
+  labs(title="Boxplots of Monthly Rate Average for Euro to TL from 2012 to 2020",x="Time (in Years)", y="Exchange Rate (in TL)")+
+  theme(plot.title=element_text(hjust=0.5),axis.line = element_line(colour = "black", size=0.5),axis.text.x = element_text(angle = 45, vjust =1, hjust=1))
+euroboxplot_years
+```
+
+The boxplots are supporting our argument above. We can see that most the boxplots are rather condensed, besides the ones in 2018 and 2020. ıt also appears that during the first couple of years, the rate has been more stable with little increase but after 2015, one can easily notice the increasing trend.
+
+```{r}
+euroboxplot_term <- ggplot(Euro_CSV,aes(Year,euro)) + geom_boxplot(aes(group=Year), fill="cyan", size=0.8) + 
+  scale_x_continuous(breaks=seq(2010, 2020, 1)) + geom_jitter(width=0.1,alpha=0.2) +
+  labs(title="Boxplots of the Search Volumes of ''euro'' from 2012 to 2020",x="Time (in Years)", y="Proportional Search Volumes")+
+  theme(plot.title=element_text(hjust=0.5),axis.line = element_line(colour = "black", size=0.5),axis.text.x = element_text(angle = 45, vjust =1, hjust=1))
+euroboxplot_term
+```
+
+The search volumes of the word "euro" tell a similar story, in that we can also see that the data form 2018 and 2020 are more scattered, also one can easily notice the increasing trend here. One thing to consider is the outliers in 2016, it seems quite unusual. The reason for this may be the terrorist attacks, the following safety concerns from Europe and calling out Turkey an unsafe place to visit.
+
+```{r}
+euroboxplot_term2 <- ggplot(Euro_CSV,aes(Year,vadeli_hesap)) + geom_boxplot(aes(group=Year), fill="light green", size=0.8) + 
+  scale_x_continuous(breaks=seq(2010, 2020, 1)) + geom_jitter(width=0.1,alpha=0.2) +
+  labs(title="Boxplots of the Search Volumes of ''vadeli hesap'' from 2012 to 2020",x="Time (in Years)", y="Proportional Search Volumes")+
+  theme(plot.title=element_text(hjust=0.5),axis.line = element_line(colour = "black", size=0.5),axis.text.x = element_text(angle = 45, vjust =1, hjust=1))
+euroboxplot_term2
+```
+
+One last thing to take a look is the search volumes of the word "vadeli hesap". One can see that although it does not appear to be too relevant at first, the yearly boxplots of the Google Trends data seem quite compatible with the actual rate. This is interesting, because it may tell us that some people who want to invest may have looked for other opportunities and therefore the term has gained more and more popularity over the years. It is also worth mentioning the decrease in 2020. This is probably due to the decreasing interest rate.
+
+
+
+
+
+
+
+
+
