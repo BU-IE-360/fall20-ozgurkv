@@ -187,7 +187,7 @@ euroboxplot_term2
 
 One last thing to take a look is the search volumes of the word "vadeli hesap". One can see that although it does not appear to be too relevant at first, the yearly boxplots of the Google Trends data seem quite compatible with the actual rate. This is interesting, because it may tell us that some people who want to invest may have looked for other opportunities and therefore the term has gained more and more popularity over the years. It is also worth mentioning the decrease in 2020. This is probably due to the decreasing interest rate.
 
-
+### You can reach the the R Markdown file of my work by clicking [**here**](https://github.com/BU-IE-360/fall20-ozgurkv/blob/master/Files/Homework_1.Rmd).
 
 
 
