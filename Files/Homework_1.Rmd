@@ -1,6 +1,6 @@
 ---
 title: "Interpretation of Data by Using Google Trends"
-author: "Ozgur Kaan Varlik"
+author: "Ozgur Kaan Varlik - IE360 - Fall 2020"
 output: html_document
 ---
 
