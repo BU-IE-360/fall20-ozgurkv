@@ -14,7 +14,7 @@ Tourism_Income_CSV <- read_csv("Tourism Income CSV.csv")
 Euro_CSV <- read_csv("Euro CSV.csv")
 ```
 
-### Examining the Monthly Data about the Car Market in Turkey
+### Examining the Monthly Data regarding the Car Market in Turkey
 
 This data set will give us an insight into the car market of Turkey, in that by inspecting the data, we might have a better understanding of how the car market functions nationally. The data consists of monthly retail car sales from January 2010 until October 2020. More information regarding not only national, but also global car sales can be found by visiting the website of [ODD](http://www.odd.org.tr/web_2837_1/index.aspx).
 
@@ -133,7 +133,7 @@ tourism_graph_years
 
 It is worth mentioning that, when we take a look at the line graph of the search volumes of "Erken Rezervasyon", we can see the effects of seasonality; however, resulting in higher results different months.
 
-### Exploring the Behaviour of Exchange Rates over a Period of Time
+### Exploring the Behaviour of Exchange Rates in Turkey
 
 Now we are entering the final part of this homework by inspecting the change in an exchange rate, specifically the rate of Euro to TL. The data we are dealing with was taken from the website of [TCMB](https://www.tcmb.gov.tr/), where you can find various other statistics regarding banking data, other exchange rates, interest rates etc.
 
