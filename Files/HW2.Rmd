@@ -16,6 +16,8 @@ Data_for_hw2 <- read_csv("C:/Users/ozgur_oj34pmq/OneDrive/Masaüstü/Documents/I
 dt <- data.table(Data_for_hw2)
 ```
 
+## Introduction
+
 In the field of economics, inflation is defined as a general rise in the price level over a period of time, which consequently results in a diminished purchasing power. If there is an increase in the price level, the same amount of money will not be able to buy the same set of items, since each unit of money has a lower value compared to before. On the other hand, Consumer Price Index (CPI) reflects the weighted average of prices of a basket of consumer goods and services, such as transportation, food, and medical care. It is a highly preferred method for assessing the inflation rate, although there has always been some dispute whether CPI is actually a good measure of inflation or not.
 
 An exchange rate is the value of a nation's currency against the currency of another. "How is this related to consumer price index?", one might wonder. The answer lies within the measures taken by the central bank after a rise or decrease in the inflation rate. Usually when inflation is low, interest rates are reduced and when inflation is high, interest rates are raised by the central bank of that country. This consequently results in a change in the behavior of the average consumer. If interest rates are raised, households are more likely to keep their money in the bank because of higher returns. Similarly, if you get a higher interest rate for a certain currency, you are more likely to invest there. On the other hand, low inflation means reduced interest rates and as a result, less people are inclined to invest in that currency.
@@ -28,15 +30,18 @@ As you can see, all the terms I have used, namely consumer price index, the exch
 
 **Is consumer price index actually related to the exchange rates, consumer bank loans and the unemployment rate?**
 
+To be able to at least properly look into this question, we will make some visual analyzes, do some tests for linear relationships and then interpret the results.
+
 ## Manipulation and Visualization
 
 The set of data I have used for this assignment was easy to work with, since they are from the same source.
 ```{r}
 setDT(Data_for_hw2)
-colnames(dt)[colnames(Data_for_hw2) %in% c("date", "rate", "credit","cpi","unemp","year")] <- c("Date", "Exchange Rate","Bank Loans","CPI","Unemployment Rate","Year")
+dt <- subset(Data_for_hw2, select = -c(6))
+colnames(dt)[colnames(dt) %in% c("date", "rate", "credit","cpi","unemp")] <- c("Date", "Exchange Rate","Bank Loans","CPI","Unemployment Rate")
 head(dt)
 ```
-I have added a column to specify the year in order to group the values in a less complex way. 
+I have also added a column to specify the year in order to group the values in a less complicated way. 
 
 **Now, let's visually inspect our set of data:**
 
@@ -139,7 +144,7 @@ After making our visual inspection and finding several similarities, let's now s
 
 ## Correlation Analysis
 
-There are different method to perform correlation analysis, I will be using Pearson correlation coefficient (r) for my set of data. It is a measure for determining the level of linear independence between two variables. The values r can take range from -1 to 1. If r=1, it means that there is a positive correlation between the variables, in that for every positive increase in one variable, we would also expect a positive increase in the other variable. If r=-1, similarly, it means that there is a negative correlation between the variables, in that for every increase in one variable, we would expect a decrease in the other variable. ıf r=0, it means there is no correlation, in that they are not related.
+There are different method to perform correlation analysis, I will be using Pearson correlation coefficient (r) for my set of data. It is a measure for determining the level of linear independence between two variables. The values r can take range from -1 to 1. If r = 1, it means that there is a positive correlation between the variables, in that for every positive increase in one variable, we would also expect a positive increase in the other variable. If r = -1, similarly, it means that there is a negative correlation between the variables, in that for every increase in one variable, we would expect a decrease in the other variable. If r = 0, it means there is no correlation, in that they are not related.
 
 ```{r}
 corr <- cor(Data_for_hw2[,-c(1,6)])
@@ -155,7 +160,7 @@ By building a correlation matrix, we are now able to see if our measures are in 
 
 **Now, let's do some of these tests separately to make further observations:**
 
-We will be using Pearson Correlation Test for our analysis. Our null hypothesis states that there is zero or an insignificant level of correlation between the variables, whereas our alternative hypothesis states that there is a significant level of correlation between the variables. ıf our p-value is less then 0.05, we will be rejecting our null hypothesis and therefore conclude that there is in fact a degree of correlation between the variables.
+We will be using Pearson Correlation Test for our analysis. Our null hypothesis states that there is zero or an insignificant level of correlation between the variables, whereas our alternative hypothesis states that there is a significant level of correlation between the variables. If our p-value is less then 0.05, we will be rejecting our null hypothesis and therefore conclude that there is in fact a degree of correlation between the variables.
 
 ```{r}
 res1 <- cor.test(Data_for_hw2$rate, Data_for_hw2$cpi, 
@@ -181,7 +186,7 @@ res3
 
 Although results from this test is relatively more interesting, we still reject our null hypothesis and conclude there is a significant level of positive correlation between CPI and the unemployment rate.
 
-As the final step of our inspection, let's now fit a regression line to visually analyze the level of correlation.
+**As for the next step of our inspection, let's now fit a regression line to visually analyze the level of correlation:**
 
 ```{r message=FALSE}
 my_graph <- ggplot(Data_for_hw2, aes(x = cpi, y = rate)) +
@@ -211,7 +216,17 @@ my_graph <- ggplot(Data_for_hw2, aes(x = cpi, y = credit)) +
 my_graph
 ```
 
-Although the level of correlation seems to be lower, one cannot argue against it. However, it is worth mentioning that over the last several years the variables appear to have become less correlated, it may be wise to test the variables for after 2017.
+Although the level of correlation seems to be lower, one cannot argue against it. However, it is worth mentioning that over the last several years the variables appear to have become less correlated, it may be wise to test the variables for after 2018.
+
+```{r}
+newset <- Data_for_hw2[61:95]
+res4 <- cor.test(newset$credit, newset$cpi, 
+                method = "pearson")
+res4
+
+```
+
+It appears that our assumption is correct to some extent, in that the correlation coefficient is significantly lower but one should also consider that our set of data is much smaller.
 
 ```{r message=FALSE}
 my_graph <- ggplot(Data_for_hw2, aes(x = cpi, y = unemp)) +
@@ -228,13 +243,19 @@ my_graph
 
 As we have seen from the correlation test, the level of correlation between CPI and the unemployment rate is lower than the other two and here one can visually validate this result. The errors will be significantly higher in this graph than the other two above, since the values are much more scattered.
 
-## Conclusion
+**Finally, it might also be good idea to fit our data in a multiple linear regression model to see if our measures, the exchange rate, consumer loans and the unemployment rate, can work together to predict the behavior of consumer price index:**
 
-My analysis of this data set has started with a visual inspection. Although it is not scientific by any means, it was a good starting point to see if there is anything visible that would lead me to believe that these variables are correlated, and in fact there were some similarities like the increasing trend and the abnormalities in the year 2018 that did supported my initial assumption. Then I continued with finding correlation coefficients & p-values of the the variables by using the Pearson Correlation Test, and by the end of our tests, it appeared that we were indeed right and there was a significant level of correlation between the variables. Finally, I fitted a regression line in the scatter plots of the variables to once again visually inspect if there is anything to consider or validate. Our visual analysis suggested that the results from the tests do conform with the regression line fittings.
-
-Although we have concluded that our variables are significantly correlated, one should consider that there are many other factors affecting these variables. For example, exchange rates are affected by inflation rates, of both countries, interest rates, government debts, speculations and much more. So it would be wise to say that our analysis is very very simple compared the real world.
-
-```{r echo = TRUE}
-# more will be added.
+```{r}
+fit <- lm(cpi ~ rate + credit + unemp, data=Data_for_hw2)
+summary(fit) # show results
 ```
 
+By looking at the summary of the model, we can say that the measures did indeed deliver consistent outcomes with our observations so far. By looking at the p-value of the F-Test, we can conclude that there is at least one significant linear relationship between CPI and the other variables. Our R-squared value is pretty close to 1, which also supports this argument. Furthermore, the p-values of the T-Test can also be interpreted as the indication of a significant linear relationship between the variables, since all of them are lower than 0.05.
+
+## Conclusion
+
+My analysis of this data set has started with a visual inspection. Although it is not scientific by any means, it was a good starting point to see if there is anything visible that would lead me to believe that these variables are correlated, and in fact there were some similarities like the increasing trend and the abnormalities in the year 2018 that did support my initial assumption. Then I continued with finding correlation coefficients & p-values of the the variables by using the Pearson Correlation Test, and by the end of our tests, it appeared that we were indeed right and there was analytically a significant level of correlation between the variables. Next, I fitted a regression line in the scatter plots of our measures to once again visually inspect if there is anything to consider or validate. Our visual analysis suggested that the results from the tests do conform with the regression line fittings. Finally, I fitted our data into a linear regression model to look for any abnormalities or different outcomes, but there weren't any. The results were consistent with our assumptions before.
+
+Although we have concluded that our variables seem to be significantly correlated, one should consider that there are many other factors affecting these variables. For example, exchange rates are affected by inflation rates (of both countries), interest rates, government debts, speculations and much more. On the other hand, inflation does get affected by supply, demand, cost of production, wages etc. So it would be wise to say that our analysis is very very simple compared the real world and we shouldn't directly conclude that our measures are 100% related. ıt is worth mentioning how different outcomes are yielded when comparing the the unemployment rate with CPI. Because consumer price index is used as a measure of inflation and we have the unemployment rate to compare it with, when unemployment rate is fluctuating, we would expect CPI to decelerate, since unemployment rate and inflation rate are in theory inversely correlated. However, our analysis told a different story. Although we saw unemployment rate drop and rise over the years several times, it seems that CPI was increasing more and more rapidly. This might be due to the CPI not being the best indicator of inflation, the country's ongoing economical struggle or the fact that long term data is not well explained by the Phillips Curve. 
+
+### You can reach the R Markdown file of my work by clicking [**here**](https://github.com/BU-IE-360/fall20-ozgurkv/blob/master/Files/HW2.Rmd).
