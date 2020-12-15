@@ -226,7 +226,7 @@ res4
 
 ```
 
-It appears that our assumption is correct to some extent, in that the correlation coefficient is significantly lower but one should also consider that our set of data is much smaller.
+It appears that our assumption is correct to some extent, in that the correlation coefficient is significantly lower, but one should also keep in mind that our set of data is much smaller.
 
 ```{r message=FALSE}
 my_graph <- ggplot(Data_for_hw2, aes(x = cpi, y = unemp)) +
