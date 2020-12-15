@@ -1,0 +1,236 @@
+---
+title: "Correlation Inquiry of a Data Set"
+author: "Ozgur Kaan Varlik - IE360 - Fall 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(ggplot2)
+library(ggcorrplot)
+library(readr)
+library(data.table)
+Data_for_hw2 <- read_csv("C:/Users/ozgur_oj34pmq/OneDrive/Masaüstü/Documents/IE 360/Homework 2/Data for hw2.csv", 
+                         col_types = cols(date = col_date(format = "%d.%m.%Y")))
+
+dt <- data.table(Data_for_hw2)
+```
+
+In the field of economics, inflation is defined as a general rise in the price level over a period of time, which consequently results in a diminished purchasing power. If there is an increase in the price level, the same amount of money will not be able to buy the same set of items, since each unit of money has a lower value compared to before. On the other hand, Consumer Price Index (CPI) reflects the weighted average of prices of a basket of consumer goods and services, such as transportation, food, and medical care. It is a highly preferred method for assessing the inflation rate, although there has always been some dispute whether CPI is actually a good measure of inflation or not.
+
+An exchange rate is the value of a nation's currency against the currency of another. "How is this related to consumer price index?", one might wonder. The answer lies within the measures taken by the central bank after a rise or decrease in the inflation rate. Usually when inflation is low, interest rates are reduced and when inflation is high, interest rates are raised by the central bank of that country. This consequently results in a change in the behavior of the average consumer. If interest rates are raised, households are more likely to keep their money in the bank because of higher returns. Similarly, if you get a higher interest rate for a certain currency, you are more likely to invest there. On the other hand, low inflation means reduced interest rates and as a result, less people are inclined to invest in that currency.
+
+Another aspect to consider is the amount of consumer bank loans. What is expected to happen when inflation is high? When there is an increase in inflation, the central bank, as I have stated above, raises interest rates. This creates an opportunity for lenders, in that, higher interest rates mean higher returns, also since the cost of living is rising, more and more people are inclined to get a bank loan. However, borrowers might benefit from this situation too. Because in a country with ever-increasing inflation, each loan you get is going to be worth less and less over time. So it might actually be good idea after all, especially in a country such as Turkey.
+
+It might also be useful to take the unemployment rate of a country and compare it to the consumer price index. It is said in economics that low inflation and high employment are the the cornerstones of monetary policy. However, there seems a tradeoff between inflation and unemployment, which is explained by the "Phillips Curve". It shows that there should in fact be an inverse relationship between the two. When inflation is high, unemployment should be low and when unemployment is high, inflation should be low. Nevertheless, this idea does not hold for the long-term as the economy can adjust to any rate of inflation and return to the natural rate of unemployment. However, there have been several cases that proved this idea wrong and maybe a little too simple. One of the cases is the United States, which has experienced low unemployment and inflation over the last decade and the other is Turkey, which we will take a look in a moment, a completely different story.
+
+As you can see, all the terms I have used, namely consumer price index, the exchange rate, consumer bank loans and the unemployment rate, appear to be related in theory. Today I will put this idea to the test in order to see if it holds up in reality. So, the question I am trying to answer today is:
+
+**Is consumer price index actually related to the exchange rates, consumer bank loans and the unemployment rate?**
+
+## Manipulation and Visualization
+
+The set of data I have used for this assignment was easy to work with, since they are from the same source.
+```{r}
+setDT(Data_for_hw2)
+colnames(dt)[colnames(Data_for_hw2) %in% c("date", "rate", "credit","cpi","unemp","year")] <- c("Date", "Exchange Rate","Bank Loans","CPI","Unemployment Rate","Year")
+head(dt)
+```
+I have added a column to specify the year in order to group the values in a less complex way. 
+
+**Now, let's visually inspect our set of data:**
+
+```{r}
+linegraph_rate <- ggplot(Data_for_hw2,aes(date,rate,color=rate)) + geom_line(size = 1.1) +
+  scale_colour_gradient2(low = "seagreen", mid = "orange" , high = "red", midpoint=mean(Data_for_hw2$rate)) + 
+  labs(title="Monthly Rate Average for Dollar to TL from January 2013 to December 2020", x = "Time (in Months)", y = "Exchange Rate (in TL)") + theme_minimal() +
+  theme(legend.position="none",plot.title=element_text(hjust=0.5),axis.line = element_line(colour = "gray", size=0.8),
+        axis.text.x = element_text(angle = 45, vjust =1, hjust=1)) +
+  scale_x_date(date_labels = "%m/%Y", date_breaks = "9 months") +
+  scale_y_continuous(breaks = seq(0,10,1))
+linegraph_rate
+```
+
+At first glance, one can easily say that there is an increasing trend, which has gotten more severe over the years. There seems to be a rapid increase followed by a rapid decrease in 2018. This is most probably due to mistrust in the economy and the elections at the time.
+
+```{r}
+boxplot_rate <- ggplot(Data_for_hw2,aes(year,rate)) + geom_boxplot(aes(fill = factor(year)),size=0.8) + scale_fill_brewer(palette="Spectral")+theme_minimal() + geom_jitter(width=0.1,alpha=0.2) +
+  labs(title="Boxplots of Monthly Rate Average for Dollar to TL from 2013 to 2020",x="Time (in Years)", y="Exchange Rate (in TL)",fill = "Years") +
+  theme(plot.title=element_text(hjust=0.5),axis.line = element_line(colour = "gray", size=0.8),
+        axis.text.x = element_text(angle = 45, vjust =1, hjust=0.8))
+boxplot_rate
+```
+
+Further inspection of the boxplots supports our argument of the ever-increasing trend. As one can see, in the last three years, the data is more scattered, whereas in early years boxplots are more condensed, meaning the exchange rate has increased more significantly over the last several years compared to the early 2010s.
+
+```{r}
+linegraph_loans <- ggplot(Data_for_hw2,aes(date,credit,color=credit)) + geom_line(size = 1.1) +
+  scale_colour_gradient2(low = "purple", mid = "pink" , high = "springgreen3", midpoint=mean(Data_for_hw2$credit)) + 
+  labs(title="Monthly Consumer Loans of Turkey from January 2013 to December 2020", x = "Time (in Months)", y = "Loans (in 000 TL)") + theme_minimal() +
+  theme(legend.position="none",plot.title=element_text(hjust=0.5),axis.line = element_line(colour = "gray", size=0.8),
+        axis.text.x = element_text(angle = 45, vjust =1, hjust=1)) +
+  scale_x_date(date_labels = "%m/%Y", date_breaks = "9 months") +
+  scale_y_continuous(breaks = pretty(Data_for_hw2$credit, n = 10))
+linegraph_loans
+```
+
+The line graph of monthly consumer loans seem to be not irrelevant to the exchange rate after all. We can see a similar increasing trend that is getting more rapid coupled with an abnormality in 2018 just like what happened with the exchange rate.
+
+**However, it might be interesting to take a look at the boxplots:**
+
+```{r}
+boxplot_loans <- ggplot(Data_for_hw2,aes(year,credit)) + geom_boxplot(aes(fill = factor(year)),size=0.8) + scale_fill_brewer(palette="PiYG")+theme_minimal() + geom_jitter(width=0.1,alpha=0.2) +
+  labs(title="Boxplots of Monthly Consumer Loans from 2013 to 2020",x="Time (in Years)", y="Loans (in 000 TL)",fill = "Years") +
+  theme(plot.title=element_text(hjust=0.5),axis.line = element_line(colour = "gray", size=0.8),
+        axis.text.x = element_text(angle = 45, vjust =1, hjust=0.8))
+boxplot_loans
+```
+
+The boxplots appear to support our argument of similarity, in that we can still see an increasing trend with the last couple of years being more scattered. However, one should notice that the rise seems to have happened more rapidly here.
+
+```{r}
+linegraph_unemp <- ggplot(Data_for_hw2,aes(date,unemp,color=unemp)) + geom_line(size = 1.1) +
+  scale_colour_gradient2(low = "green", mid = "cyan" , high = "purple", midpoint=mean(Data_for_hw2$unemp)) + 
+  labs(title="Monthly Unemployment Rate from January 2013 to December 2020", x = "Time (in Months)", y = "Unemployment Rate (in %)") + theme_minimal() +
+  theme(legend.position="none",plot.title=element_text(hjust=0.5),axis.line = element_line(colour = "gray", size=0.8),
+        axis.text.x = element_text(angle = 45, vjust =1, hjust=1)) +
+  scale_x_date(date_labels = "%m/%Y", date_breaks = "6 months") +
+  scale_y_continuous(breaks = seq(0,15,1))
+linegraph_unemp
+```
+
+By looking at the line graph of the unemployment rate over the years, one can easily say that this set of data is not as similar to the other ones. It seems to have significantly more fluctuations, almost in a seasonal pattern, peaking in winter and plummeting in summer. However, it is worth mentionaing that there appears to be a slow but icreasing trend.
+
+```{r}
+boxplot_unemp <- ggplot(Data_for_hw2,aes(year,unemp)) + geom_boxplot(aes(fill = factor(year)),size=0.8) + scale_fill_brewer(palette="Dark2")+theme_minimal() + geom_jitter(width=0.1,alpha=0.2) +
+  labs(title="Boxplots of Monthly Unemployment Rate from 2013 to 2020",x="Time (in Years)", y="Unemployment Rate (in %)",fill = "Years") +
+  theme(plot.title=element_text(hjust=0.5),axis.line = element_line(colour = "gray", size=0.8),
+        axis.text.x = element_text(angle = 45, vjust =1, hjust=0.8))
+boxplot_unemp
+```
+
+When we look at the boxplots, they show that there is indeed an increasing trend, however, unlike the measures above, the boxplots are not condensed like in early years. So it is safe to say that the correlation between the unemployment rate and the exchange rate will not be as high as the correlation between the exchange rate and consumer loans.
+
+```{r}
+linegraph_cpi <- ggplot(Data_for_hw2,aes(date,cpi,color=cpi)) + geom_line(size = 1.1) +
+  scale_colour_gradient2(low = "green", mid = "slateblue1" , high = "red", midpoint=mean(Data_for_hw2$cpi)) + 
+  labs(title="Monthly Average CPI of Turkey from January 2013 to December 2020", x = "Time (in Months)", y = "Average Consumer Price Index (CPI)") + theme_minimal() +
+  theme(legend.position="none",plot.title=element_text(hjust=0.5),axis.line = element_line(colour = "gray", size=0.8),
+        axis.text.x = element_text(angle = 45, vjust =1, hjust=1)) +
+  scale_x_date(date_labels = "%m/%Y", date_breaks = "9 months") +
+  scale_y_continuous(breaks = pretty(Data_for_hw2$cpi, n = 10))
+linegraph_cpi
+
+```
+
+What should immediately be noticed when taking a look at this graph and the ones above is that average CPI definitely share similarities with the other measures, especially with the exchange rate and consumer loans. Like in all other graphs, we can see an increasing trend and there seems to have happened an unsual increase and decrease in 2018 just like our with our first two measures.
+
+```{r}
+boxplot_cpi <- ggplot(Data_for_hw2,aes(year,cpi)) + geom_boxplot(aes(fill = factor(year)),size=0.8) + scale_fill_brewer(palette="Spectral")+theme_minimal() + geom_jitter(width=0.1,alpha=0.2) +
+  labs(title="Boxplots of Monthly CPI from 2013 to 2020",x="Time (in Years)", y="Consumer Price Index (CPI)",fill = "Years") +
+  theme(plot.title=element_text(hjust=0.5),axis.line = element_line(colour = "gray", size=0.8),
+        axis.text.x = element_text(angle = 45, vjust =1, hjust=0.8))
+boxplot_cpi
+```
+
+The boxplots for the consumer price index over the years do not tell a different story. In fact, the boxplots for the exchange rate seem to have very similar visual properties compared to the CPI.
+
+After making our visual inspection and finding several similarities, let's now see if there in fact is any correlation between these measures.
+
+## Correlation Analysis
+
+There are different method to perform correlation analysis, I will be using Pearson correlation coefficient (r) for my set of data. It is a measure for determining the level of linear independence between two variables. The values r can take range from -1 to 1. If r=1, it means that there is a positive correlation between the variables, in that for every positive increase in one variable, we would also expect a positive increase in the other variable. If r=-1, similarly, it means that there is a negative correlation between the variables, in that for every increase in one variable, we would expect a decrease in the other variable. ıf r=0, it means there is no correlation, in that they are not related.
+
+```{r}
+corr <- cor(Data_for_hw2[,-c(1,6)])
+correlationplot <- ggcorrplot(corr,hc.order = TRUE,
+           outline.col = "black", show.legend = FALSE, type = "full", lab = TRUE, lab_size = 6,
+           title = "Correlation Matrix", colors = c("purple","white","seagreen"),
+           legend.title = "Correlation") + theme(legend.position="none",plot.title=element_text(hjust=0.5), 
+                                                 axis.text.x = element_text(angle = 0, vjust =0.5, hjust=0.5))
+correlationplot
+```
+
+By building a correlation matrix, we are now able to see if our measures are in fact related. At first glance, it can be said that there is a high degree of correlation between CPI and the exchange rate, which proves our argument above in fact right. It also appears that the correlation between CPI and consumer loans is relatively high, whereas the lowest correlation is obtained by comparing the unemployment rate with consumer loans.
+
+**Now, let's do some of these tests separately to make further observations:**
+
+We will be using Pearson Correlation Test for our analysis. Our null hypothesis states that there is zero or an insignificant level of correlation between the variables, whereas our alternative hypothesis states that there is a significant level of correlation between the variables. ıf our p-value is less then 0.05, we will be rejecting our null hypothesis and therefore conclude that there is in fact a degree of correlation between the variables.
+
+```{r}
+res1 <- cor.test(Data_for_hw2$rate, Data_for_hw2$cpi, 
+                method = "pearson")
+res1
+```
+
+The result of Pearson correlation test between the exchange rate and CPI shows that there is in fact a significant level of correlation between the two, since the p-value very low. We can say that CPI and the exchange rate is positively correlated.
+
+```{r}
+res2 <- cor.test(Data_for_hw2$credit, Data_for_hw2$cpi, 
+                method = "pearson")
+res2
+```
+
+A similar result can be seen here. The result of the correlation test shows that we can reject our null hypothesis and conclude that CPI and consumer loans are positively correlated, since the p-value is very low.
+
+```{r}
+res3 <- cor.test(Data_for_hw2$unemp, Data_for_hw2$cpi, 
+                method = "pearson")
+res3
+```
+
+Although results from this test is relatively more interesting, we still reject our null hypothesis and conclude there is a significant level of positive correlation between CPI and the unemployment rate.
+
+As the final step of our inspection, let's now fit a regression line to visually analyze the level of correlation.
+
+```{r message=FALSE}
+my_graph <- ggplot(Data_for_hw2, aes(x = cpi, y = rate)) +
+  geom_point(aes(color = factor(year)),size=1.3) +
+  geom_smooth(method = "lm",
+              col = "dimgray", linetype=1, alpha=0.3,
+              se = FALSE,
+              size = 1)+ scale_color_brewer(palette="BrBG")+
+  theme_minimal() + labs(title="Fitting a Regression Line", subtitle = "CPI & Exchange Rate",x="Consumer Price Index", y="Exchange Rate (in TL)")+
+  theme(legend.position="none",plot.title=element_text(hjust=0.5),axis.line = element_line(colour = "gray", size=0.8),
+        axis.text.x = element_text(angle = 0, vjust =1, hjust=-0.5))
+my_graph
+```
+
+As one can see, the variables are highly, and positively, correlated, in that the regression line could be fitted easily with minor errors.
+
+```{r message=FALSE}
+my_graph <- ggplot(Data_for_hw2, aes(x = cpi, y = credit)) +
+  geom_point(aes(color = factor(year)),size=1.3) +
+  geom_smooth(method = "lm",
+              col = "dimgray", linetype=1, alpha=0.3,
+              se = FALSE,
+              size = 1)+ scale_color_brewer(palette="PRGn")+
+  theme_minimal() + labs(title="Fitting a Regression Line", subtitle = "CPI & Consumer Loans",x="Consumer Price Index", y="Loans (in 000 TL)")+
+  theme(legend.position="none",plot.title=element_text(hjust=0.5),axis.line = element_line(colour = "gray", size=0.8),
+        axis.text.x = element_text(angle = 0, vjust =1, hjust=-0.5))
+my_graph
+```
+
+Although the level of correlation seems to be lower, one cannot argue against it. However, it is worth mentioning that over the last several years the variables appear to have become less correlated, it may be wise to test the variables for after 2017.
+
+```{r message=FALSE}
+my_graph <- ggplot(Data_for_hw2, aes(x = cpi, y = unemp)) +
+  geom_point(aes(color = factor(year)),size=1.3) +
+  geom_smooth(method = "lm",
+              col = "dimgray", linetype=1, alpha=0.3,
+              se = FALSE,
+              size = 1)+ scale_color_brewer(palette="Accent")+
+  theme_minimal() + labs(title="Fitting a Regression Line", subtitle = "CPI & Unemployment Rate",x="Consumer Price Index", y="Unemployment Rate (in %)")+
+  theme(legend.position="none",plot.title=element_text(hjust=0.5),axis.line = element_line(colour = "gray", size=0.8),
+        axis.text.x = element_text(angle = 0, vjust =1, hjust=-0.5))
+my_graph
+```
+
+As we have seen from the correlation test, the level of correlation between CPI and the unemployment rate is lower than the other two and here one can visually validate this result. The errors will be significantly higher in this graph than the other two above, since the values are much more scattered.
+
+## Conclusion
+
+My analysis of this data set has started with a visual inspection. Although it is not scientific by any means, it was a good starting point to see if there is anything visible that would lead me to believe that these variables are correlated, and in fact there were some similarities like the increasing trend and the abnormalities in the year 2018 that did supported my initial assumption. Then I continued with finding correlation coefficients & p-values of the the variables by using the Pearson Correlation Test, and by the end of our tests, it appeared that we were indeed right and there was a significant level of correlation between the variables. Finally, I fitted a regression line in the scatter plots of the variables to once again visually inspect if there is anything to consider or validate. Our visual analysis suggested that the results from the tests do conform with the regression line fittings.
+
+Although we have concluded that our variables are significantly correlated, one should consider that there are many other factors affecting these variables. For example, exchange rates are affecced by inflation rates, of both countries, interest rates, government debts, speculations and much more. So it would be wise to say that our analysis is very very simple compared the real world.
+
