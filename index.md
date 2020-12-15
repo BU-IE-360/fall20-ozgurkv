@@ -10,3 +10,6 @@ You can reach my homework regarding time series forecasting methods by clicking 
 
 ### Homework 1 (20.11.2020)
 You can reach my homework regarding data visualization and interpretation by clicking [**here**](Files/Homework_1.html).
+
+### Homework 2 (18.12.2020)
+You can reach my homework regarding the correlation inquiry of a set od data by clicking [**here**](Files/HW2.html).
