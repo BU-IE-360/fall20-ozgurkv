@@ -232,5 +232,9 @@ As we have seen from the correlation test, the level of correlation between CPI 
 
 My analysis of this data set has started with a visual inspection. Although it is not scientific by any means, it was a good starting point to see if there is anything visible that would lead me to believe that these variables are correlated, and in fact there were some similarities like the increasing trend and the abnormalities in the year 2018 that did supported my initial assumption. Then I continued with finding correlation coefficients & p-values of the the variables by using the Pearson Correlation Test, and by the end of our tests, it appeared that we were indeed right and there was a significant level of correlation between the variables. Finally, I fitted a regression line in the scatter plots of the variables to once again visually inspect if there is anything to consider or validate. Our visual analysis suggested that the results from the tests do conform with the regression line fittings.
 
-Although we have concluded that our variables are significantly correlated, one should consider that there are many other factors affecting these variables. For example, exchange rates are affecced by inflation rates, of both countries, interest rates, government debts, speculations and much more. So it would be wise to say that our analysis is very very simple compared the real world.
+Although we have concluded that our variables are significantly correlated, one should consider that there are many other factors affecting these variables. For example, exchange rates are affected by inflation rates, of both countries, interest rates, government debts, speculations and much more. So it would be wise to say that our analysis is very very simple compared the real world.
+
+```{r echo = TRUE}
+# more will be added.
+```
 
