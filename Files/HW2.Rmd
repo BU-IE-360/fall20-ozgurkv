@@ -1,7 +1,12 @@
 ---
 title: "Correlation Inquiry of a Data Set"
 author: "Ozgur Kaan Varlik - IE360 - Fall 2020"
-output: html_document
+output: 
+  html_document:
+    toc: true
+    toc_depth: 2
+    toc_float: true
+    theme: sandstone
 ---
 
 ```{r setup, include=FALSE}
