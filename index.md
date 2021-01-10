@@ -15,4 +15,4 @@ You can reach my homework regarding data visualization and interpretation by cli
 You can reach my homework regarding the correlation inquiry of a set of data by clicking [**here**](Files/HW2.html).
 
 ### Homework 3 (11.01.2020)
-You can reach my homework regarding time series regression usage to predict future values by clicking [**here**](Files/HW3.html).
+You can reach my homework regarding time series regression usage for predictions by clicking [**here**](Files/HW3.html).
