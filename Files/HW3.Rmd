@@ -175,8 +175,11 @@ checkresiduals(fit3,col="red")
 
 It should be noticed that after considering the seasonality effect, the distribution of the residuals are more like normal, however, there still is a degree of auto-correlation that has to be dealt with. It may be useful to add variables to account for the outliers.
 
-```{r}
-boxplot(sales_root, col = "purple",main="Boxplot of Square Root of House Sales")
+```{r message=FALSE}
+boxplot <- ggplot(House_Sales,aes(Date,sales_root)) + geom_boxplot(aes(group=1),size=0.8,fill="purple") +theme_minimal() + geom_jitter(width=0.1,alpha=0.2) +
+  labs(title="Boxplot of Square Root of House Sales",x="Time (in Years)", y="Root of House Sales",fill = "Years") +
+  theme(plot.title=element_text(hjust=0.5),axis.line = element_line(colour = "gray", size=0.8))
+boxplot
 ```
 
 After looking at the boxplot of square root of house sales, it appears that there are 7 points that can be considered as an outlier. These points are from the months 6/2019, 12/2019, 4/2020, 5/2020, 6/2020, 7/2020 and 8/2020. With this information, one should rebuild the model and see if there are any improvements.
