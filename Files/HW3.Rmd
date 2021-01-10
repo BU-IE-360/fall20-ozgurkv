@@ -1,0 +1,316 @@
+---
+title: "Time Series Regression for Predictions"
+author: "Ozgur Kaan Varlik - IE360 - Fall 2020"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 2
+    toc_float: true
+    theme: sandstone
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(readr)
+House_Sales <- read_csv("C:/Users/ozgur/Desktop/Documents/IE 360/Homework 3/House_Sales.csv", 
+                        col_types = cols(Date = col_date(format = "%m/%Y")))
+library(data.table)
+library(ggplot2)
+library(GGally)
+library(forecast)
+library(zoo)
+library(ggcorrplot)
+library(gridExtra)
+```
+
+## Introduction
+
+The aim of this assignment is to forecast a selected indicator at a monthly level. The target variable that will be examined here is "Total House Sales in Turkey". 
+
+There are many factors affecting the housing market in general. One thing for sure to be considered is the economic condition of a country. A good economy consequently means that there will be more people willing to spend money on buying a house, whereas in a bad economy, less people will be able that incentive. Therefore it is more than reasonable to include "General Economic Situation" as a candidate predictor. With a similar thinking approach, "Financial Situation of Households" is also added as a candidate.
+
+Another aspect to consider is "CCI".. The Consumer Confidence Index (CCI) is a survey, that measures how optimistic or pessimistic consumers are regarding their expected financial situation. If people are generally pessimistic, they will be less willing to make a commitment or take a loan, since to them, there is a significant risk. So, CCI is also included as a candidate.
+
+A crucial indicator of house sales in general is, in theory at least, the interest rate. In a period of high interest rates, there will be lower demand to buy a house since the payments will be higher and most people will opt to wait for a better time. Therefore, "Weighted Average Interest Rate For Banks Loans" is also taken as a candidate predictor.
+
+It might be useful to take a look into the "Probability of Buying or Building a Home", which is a survey and may actually coincide with the actual sales. Also, another survey of "Probability of Spending Money on Home Improvements or Renovations" can be considered as a candidate, since before putting a house on a market, improvements or renovations are often made so that the value of the house can be increased.
+
+One last aspect to take into account is the "Exchange Rate". Because there have been an increasing number of people migrating to Turkey over the last several years, it might make sense to add an exchange rate as a candidate predictor. If the exchange rate is high, people will be more likely to buy a house since every unit of the foreign currency will be worth more. For this particular assignment, the "Monthly Rate Average for Euro to TL" is taken.
+
+As one can see, all the candidate predictors mentioned above, namely "general economic situation", "financial situation of households", "CCI", "interest rates", "probability of buying or building a home", "probability of spending money on home improvements or renovations" and "exchange rates"  appear to be related to the "total house sales" in theory. For the rest of this assignment, this idea will be put to the test in order to see if it holds up in reality.
+
+## Manipulation and Visualization
+
+The set of data used for the assignment includes the dates, the sales figures and all the candidate predictors' values from 01/2013 to 11/2020. Below, the head of the data is shown.
+
+```{r}
+setDT(House_Sales)
+colnames(House_Sales)[colnames(House_Sales) %in% c("Loan")] <- c("Interest Rate")
+head(House_Sales)
+```
+
+To clarify, "CCI" stands for "Consumer Confidence Index", "FSH" for "Financial Situation of Households", "GES" for "General Economic Situation", "PBBH" for "Probability of Buying or Building a Home" and "PHIR" for "Probability of Spending Money on Home Improvements or Renovations". The remaining variables are hopefully easily understandable.
+
+**Now that the data to be dealt with is presented, it is only fair to continue by examining the candidates and selecting the actual predictors for the model.**
+
+Firstly, it is important to take a look into the sales figures, before moving forward with the analysis.
+
+```{r message=FALSE}
+Sales <- ts(House_Sales$Sales,freq=12,start=c(2013,1))
+plot1 <- ggplot() + 
+  geom_line(data = House_Sales, aes(x = Date, y = Sales, color=Sales),size = 1) +
+  scale_colour_gradient2(low = "cyan", mid = "purple" , 
+                         high = "purple",midpoint=mean(House_Sales$Sales)) + 
+  xlab('Time') +
+  ylab('Sales') + 
+  labs(title="Monthly House Sales from January 2013 to December 2020") +
+  theme_minimal() +
+  theme(legend.position="none",plot.title=element_text(hjust=0.5), 
+        axis.line = element_line(colour="gray", size=0.8))
+
+sales_root <- sqrt(Sales)
+House_Sales <- cbind(House_Sales,sales_root)
+plot2 <- ggplot() + 
+  geom_line(data = House_Sales, aes(x = Date, y = sales_root, color=sales_root),size = 1) +
+  scale_colour_gradient2(low = "orange", mid = "orange" , 
+                         high = "red",midpoint=mean(House_Sales$sales_root)) + 
+  xlab('Time') +
+  ylab('Square Root of Sales') + 
+  labs(title="Square Root of Monthly House Sales from January 2013 to December 2020") +
+  theme_minimal() +
+  theme(legend.position="none",plot.title=element_text(hjust=0.5), 
+        axis.line = element_line(colour="gray", size=0.8))
+
+grid.arrange(plot1, plot2, nrow=2)
+```
+
+At first glance, one can say that there isn't an obvious trend, in that the sales do not seem to rise or fall significantly over the years. However, it appears there has been a change in the variance of the data, particularly in the last 2 years. For that reason, it may be wise to take the square root of the sales in order to somewhat stabilize the increasing variance and volatility.
+
+After taking the root, although not much has changed, because the mean has somewhat shifted and the values have decreased, the data is more fit to analyze, variance-wise at least. Also, it is worth mentioning that there appears to be a degree of seasonality within the data, in that the sales seem to peak in December and plummet in January of almost every year. This might be due to the campaigns and discounts in December and the expectation of a tax increase in the following year.
+
+## Selection of the Predictors
+
+After deciding on the data to use as the dependent variable, it is time to select the independent variables among the candidates chosen above for the assignment. To determine which measures will be used in building a regression model, a visual interpretation and a correlation analysis will be made.
+
+```{r}
+HouseSales <- House_Sales[,-c(1)]
+ts_sales <- ts(HouseSales,freq=12,start=c(2013,1))
+ts_sales1 <- ts_sales[,-1] #removed sales
+plot(zoo(ts_sales1), col = "blue", cex=1.5, main="Candidate Measures & Square Root of Sales from 01/2013 to 11/2020",
+     xlab="Time", ylab = c("CCI","FSH","GES","PBBH","Interest Rate", "Euro","PHIR","Root of Sales"),
+     cex.main = 2,   font.main= 1, col.main= "black")
+```
+
+By comparing the candidate predictors, one can say that the Consumer Confidence Index, the Financial Situation of Households and the General Economic Situation are very similar, therefore it is wise to pick only one among these measures as a predictor. Also, the Interest Rate and the Exchange Rate for Euro to TL seem quite comparable. Taking both of them might not be a good idea.
+
+```{r}
+colnames(ts_sales1) <- c("CCI","FSH","GES","PBBH","Interest","Euro","PHIR","Sales")
+corr <- cor(ts_sales1)
+correlationplot <- ggcorrplot(corr, hc.order = TRUE, 
+                              outline.col = "black", 
+                              show.legend = FALSE, 
+                              type = "full", 
+                              lab = TRUE, 
+                              lab_size = 4,
+                              title = "Correlation Matrix", 
+                              colors = c("seagreen","white","orangered2"),
+                              legend.title = "Correlation") +
+  theme(legend.position="none",plot.title=element_text(hjust=0.5), 
+        axis.text.x = element_text(angle = 90, vjust =0.5, hjust=0.5))
+correlationplot
+```
+
+By looking at the correlation matrix, one can say that although there is a significant degree of correlation between some of the variables, the correlation levels between the sales and the candidate predictors are relatively low. To build the model, "General Economic Situation", "Probability of Spending Money on Home Improvements" and Renovations" and the "Exchange Rate" are selected as the independent variables, which have the highest levels of correlation with the dependent variable. However, further into the analysis, it may be better to leave some of these variables out of the model.
+
+## Time Series Regression
+
+Now that the initial predictors for the model has been selected, it's time to build the first regression model and build on it. 
+
+```{r}
+dt <- data.table(SalesRoot = as.numeric(sales_root))
+GES <- ts(House_Sales$GES,freq=12,start=c(2013,1))
+PHIR <- ts(House_Sales$PHIR,freq=12,start=c(2013,1))
+Euro <- ts(House_Sales$Euro,freq=12,start=c(2013,1))
+PBBH <- ts(House_Sales$PBBH,freq=12,start=c(2013,1))
+dt <- cbind(dt, GES = as.numeric(GES))
+dt <- cbind(dt, PHIR = as.numeric(PHIR))
+dt <- cbind(dt, Euro = as.numeric(Euro))
+dt <- cbind(dt, PBBH = as.numeric(Euro))
+```
+```{r}
+fit <- lm(SalesRoot ~ PHIR + Euro + GES, data=dt)
+summary(fit)
+```
+
+As can be seen from first model, the independent variables used are not enough. Although the p-value of the model is low enough, how low the R-squared value is should be taken into account. Also, only one of the variables appears to be significant to the model.
+
+```{r}
+checkresiduals(fit, col="red")
+```
+
+By looking at the residuals, one can easily say that there is degree of auto-correlation as also suggested by the Breusch-Godfrey test. Though the mean of the residuals seem to be close to 0, the distribution is far from normal. Moving forward, it may be wise to add a seasonality component and rebuild the model accordingly.
+
+```{r message = FALSE}
+month <- rep(seq(1,12, by=1),times=7)
+month[85:95] <- c(1:11)
+dt <- cbind(dt,month)
+```
+```{r message=FALSE}
+fit2 <- lm(SalesRoot ~ as.factor(month) + PHIR + Euro + GES, data=dt)
+summary(fit2)
+```
+
+Now that the seasonality is accounted for, the model seems significantly better. The R-squared value has increased, residual standard error and the p-value of the overall model have both lowered. However, there are several variables that are insignificant within the seasonality component, this may be due to some of the model being explained by the intercept. So, it makes sense to rebuild the model by excluding it.
+
+```{r}
+fit3 <- lm(SalesRoot ~ -1 + as.factor(month) + PHIR + Euro + GES, data=dt)
+summary(fit3)
+```
+
+After excluding the intercept from the model, it can be seen that all the seasonality components are now significant. Now, residuals should be checked.
+
+```{r}
+checkresiduals(fit3,col="red")
+```
+
+It should be noticed that after considering the seasonality effect, the distribution of the residuals are more like normal, however, there still is a degree of auto-correlation that has to be dealt with. It may be useful to add variables to account for the outliers.
+
+```{r}
+boxplot(sales_root, col = "purple",main="Boxplot of Square Root of House Sales")
+```
+
+After looking at the boxplot of square root of house sales, it appears that there are 7 points that can be considered as an outlier. These points are from the months 6/2019, 12/2019, 4/2020, 5/2020, 6/2020, 7/2020 and 8/2020. With this information, one should rebuild the model and see if there are any improvements.
+
+```{r}
+dt[,outliers := 0]
+dt[c(78,88,89), outliers := 1]
+
+dt[,outliers2 := 0]
+dt[c(84,90,91,92), outliers2 := 1]
+```
+```{r}
+fit4 <- lm(SalesRoot ~ -1 + as.factor(month) + PHIR + GES + Euro + outliers + outliers2, data=dt)
+summary(fit4)
+```
+
+Now that the data is fitted one more time, it can be seen that that residual standard error as diminished greatly and PHIR value is now significant! Let's check the residuals for further interpretation.
+
+```{r}
+checkresiduals(fit4,col="red")
+```
+
+It appears that the result from the Breusch-Godfrey test has changed and now serial correlation between residuals can be rejected. Indeed, there seems to be very little correlation among the residuals. Also, the distribution seems a lot more like normal. However, one should suspect if there is some overfitting, since neither GES, nor Euro seem significant to the model. It might be a good idea to remove one of the variables from the model.
+
+```{r}
+fit5 <- lm(SalesRoot ~ -1 + as.factor(month) + PHIR + GES + outliers + outliers2, data=dt)
+summary(fit5)
+```
+
+Now that Euro is removed from the model, it seems that there is a slight decrease in residual standard error, which is good.
+
+```{r}
+checkresiduals(fit5, col="red")
+```
+
+Summary of the residuals tell a similar story. Indeed, there is less auto-correlation and the distribution of the residuals is closer to normal.
+
+## Inspection and Prediction
+
+After the final model is reached, it might be useful to compare Residuals and Fitted Vales to see if there is any correlation among them.
+
+```{r}
+dt[,fitted:=fitted(fit5)]
+dt[,residual:=residuals(fit5)]
+```
+```{r}
+dt %>%
+  ggplot(aes(x=fitted, y=residual, color=fitted)) + geom_point() +
+   scale_colour_gradient2(low = "cyan", mid = "purple" , 
+                         high = "darkorchid4",midpoint=mean(dt$fitted)) + 
+    xlab('Fitted Values') +
+  ylab('Residuals') + 
+  labs(title="Residuals vs. Fitted Values",fill = "Fitted") +
+  theme_minimal() +
+  theme(plot.title=element_text(hjust=0.5), 
+        axis.line = element_line(colour="gray", size=0.8))
+```
+
+It appears that, by visual inspection, the behavior of the residuals doesn't relate to the fitted values, in that they seem pretty much random. Furthermore, by looking at the Actual vs. Fitted Values graph, one can say that although the values seem to deter from the line sometimes, overall, the fit seems acceptable.
+
+```{r}
+dt %>%
+  ggplot(aes(x=fitted, y=SalesRoot, color=fitted)) + 
+  geom_abline(slope=1, intercept=0) +
+  geom_point() +
+  scale_colour_gradient2(low = "orange", mid = "coral" , 
+                         high = "brown2",midpoint=mean(dt$fitted)) + 
+  xlab('Fitted Values') +
+  ylab('Actual Values') + 
+  labs(title="Actual vs. Fitted Values",fill = "Fitted") +
+  theme_minimal() +
+  theme(plot.title=element_text(hjust=0.5), 
+        axis.line = element_line(colour="gray", size=0.8))
+```
+
+Let's continue by comparing the Fitted and Actual values on a graph to see if they are at least somewhat relevant.
+
+```{r}
+dt[,Date:=House_Sales$Date]
+
+cols <- c("predicted" = "darkorchid1", "actual" = "darkolivegreen2")
+p1<-ggplot() + 
+  geom_line(data = dt, aes(x = Date, y = fitted,color = "predicted"),size = 1) +
+  geom_line(data = dt, aes(x = Date, y = SalesRoot,color = "actual"),size = 1) +
+  theme_minimal() +
+  xlab('Time') +
+  ylab('Root of Sales') +
+  scale_color_manual(values = cols)
+
+dt[,predicted_sales:=fitted^2]
+dt[,actual_sales:=SalesRoot^2]
+
+cols2 <- c("predicted" = "coral1", "actual" = "aquamarine3")
+p2<-ggplot() + 
+  geom_line(data = dt, aes(x = Date, y = predicted_sales,color = "predicted"),size = 1) +
+  geom_line(data = dt, aes(x = Date, y = actual_sales,color = "actual"), size = 1) +
+  theme_minimal() +
+  xlab('Time') +
+  ylab('Sales') +
+  scale_color_manual(values = cols2)
+
+grid.arrange(p1, p2, nrow=2)
+```
+
+By looking the two graphs above, it can definitely be said that the predicted values are in line with the actual values to some extent.
+
+For the prediction, it is important to edit the data set once again to make room for the 12th month of 2020. After some necessary manipulations, it is time to make the prediction based on the model.
+
+```{r}
+month_info <- c(12)
+dt=rbind(dt,data.table(month=as.factor(month_info)),fill=T)
+dt[is.na(month)==T,month:=12]
+dt[is.na(outliers)==T,outliers:=0]
+dt[is.na(outliers2)==T,outliers2:=0]
+dt[is.na(Euro)==T,Euro:=9.38]
+dt[is.na(GES)==T,GES:=60.89]
+dt[is.na(PHIR)==T,PHIR:=26.37]
+dt[is.na(fitted)==T,fitted:=predict(fit5,dt[is.na(fitted)==T])]
+```
+
+**The predicted value for 12th month of 2020 is:**
+
+```{r}
+colnames(dt)[colnames(dt) == "predicted_sales"] <- "Prediction"
+dt[is.na(Prediction)==T,Prediction:=dt[.N,9]^2]
+dt[.N,12]
+```
+
+## Conclusion
+
+The analysis of the data set has started with some research. After finding the factors that usually affect the housing market, a visual analysis of these measures was carried out. The visual inspection suggested there several variables were pretty similar, which meant that they wouldn't add anything new to the model to be built. Afterwards, a correlation matrix was built to see if there were some measures with a significant level of correlation with the house sales. It appeared that the correlations were all relatively low, but 3 measures, namely General Economic Situation (GES), Rate Average for Euro to TL (Euro) and the Probability of Spending Money on Home Improvements or Renovations have been taken as predictors and added to the model. The model showed very low R-squared values at first, so new variables to account for the seasonality have been added. Although addition of seasonality components improved the model significantly, several of the p-values of the components appeared as "insignificant", therefore intercept is removed from the model as a solution. Then, outliers were considered and 2 variables are added accordingly. After rebuilding the model, it could be seen that the residuals were close to normally distributed, the mean of the residuals was close to 0 and the serial correlation between the residuals was rejected. Finally, the independent variables were reconsidered. I t showed that adding Euro to the model actually increased the standard residual error, so it was left out. Although the General Economic Situation appeared as insignificant in the model, the addition of it decreased the residual error and contributed to the normality of errors. Moving forward, the residuals were visually analyzed and the fitted values were plotted if there were anything to consider, but nothing significant caught the eye. Lastly, based on the fitted values and the independent variables, a prediction was made.
+
+It is worth mentioning that the year 2020 has significantly affected the model. It can easily be seen that most of the outliers are in 2020, so in the end, because of the volatility of this year, our prediction may end up very wrong. Also, one must consider that there are many factors affecting the housing market. Here, only a simple analysis was made.
+
+One last thing to notice is that the factors affecting the housing market (theoretically) appeared not very related. This may be due to the special economic condition of the country or the increasing number of people migrating to Turkey over the last decade.
+
+### You can reach the R Markdown file of my work by clicking [**here**](https://github.com/BU-IE-360/fall20-ozgurkv/blob/master/Files/HW3.Rmd).
