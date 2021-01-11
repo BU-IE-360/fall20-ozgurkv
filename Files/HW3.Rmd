@@ -124,7 +124,7 @@ By looking at the correlation matrix, one can say that although there is a signi
 
 ## Time Series Regression
 
-Now that the initial predictors for the model has been selected, it's time to build the first regression model and build on it. 
+**Now that the initial predictors for the model has been selected, it's time to build the first regression model and build on it.**
 
 ```{r}
 dt <- data.table(SalesRoot = as.numeric(sales_root))
@@ -148,7 +148,7 @@ As can be seen from first model, the independent variables used are not enough. 
 checkresiduals(fit, col="red")
 ```
 
-By looking at the residuals, one can easily say that there is degree of auto-correlation as also suggested by the Breusch-Godfrey test. Though the mean of the residuals seem to be close to 0, the distribution is far from normal. Moving forward, it may be wise to add a seasonality component and rebuild the model accordingly.
+By looking at the residuals, one can easily say that there is degree of auto-correlation as also suggested by the Breusch-Godfrey test. Though the mean of the residuals seem to be close to 0, the distribution is far from normal. Moving forward, **it may be wise to add a seasonality component and rebuild the model accordingly.**
 
 ```{r message = FALSE}
 month <- rep(seq(1,12, by=1),times=7)
@@ -160,7 +160,7 @@ fit2 <- lm(SalesRoot ~ as.factor(month) + PHIR + Euro + GES, data=dt)
 summary(fit2)
 ```
 
-Now that the seasonality is accounted for, the model seems significantly better. The R-squared value has increased, residual standard error and the p-value of the overall model have both lowered. However, there are several variables that are insignificant within the seasonality component, this may be due to some of the model being explained by the intercept. So, it makes sense to rebuild the model by excluding it.
+Now that the seasonality is accounted for, the model seems significantly better. The R-squared value has increased, residual standard error and the p-value of the overall model have both lowered. However, there are several variables that are insignificant within the seasonality component, **this may be due to some of the model being explained by the intercept.** So, it makes sense to rebuild the model by excluding it.
 
 ```{r}
 fit3 <- lm(SalesRoot ~ -1 + as.factor(month) + PHIR + Euro + GES, data=dt)
@@ -173,7 +173,7 @@ After excluding the intercept from the model, it can be seen that all the season
 checkresiduals(fit3,col="red")
 ```
 
-It should be noticed that after considering the seasonality effect, the distribution of the residuals are more like normal, however, there still is a degree of auto-correlation that has to be dealt with. It may be useful to add variables to account for the outliers.
+It should be noticed that after considering the seasonality effect, the distribution of the residuals are more like normal, however, there still is a degree of auto-correlation that has to be dealt with. **It may be useful to add variables to account for the outliers.**
 
 ```{r message=FALSE}
 boxplot <- ggplot(House_Sales,aes(Date,sales_root)) + geom_boxplot(aes(group=1),size=0.8,fill="purple") +theme_minimal() + geom_jitter(width=0.1,alpha=0.2) +
@@ -202,7 +202,7 @@ Now that the data is fitted one more time, it can be seen that that residual sta
 checkresiduals(fit4,col="red")
 ```
 
-It appears that the result from the Breusch-Godfrey test has changed and now serial correlation between residuals can be rejected. Indeed, there seems to be very little correlation among the residuals. Also, the distribution seems a lot more like normal. However, one should suspect if there is some overfitting, since neither GES, nor Euro seem significant to the model. It might be a good idea to remove one of the variables from the model.
+It appears that the result from the Breusch-Godfrey test has changed and now serial correlation between residuals can be rejected. Indeed, there seems to be very little correlation among the residuals. Also, the distribution seems a lot more like normal. However, **one should suspect if there is some overfitting,** since neither GES, nor Euro seem significant to the model. It might be a good idea to remove one of the variables from the model.
 
 ```{r}
 fit5 <- lm(SalesRoot ~ -1 + as.factor(month) + PHIR + GES + outliers + outliers2, data=dt)
@@ -300,7 +300,7 @@ dt[is.na(PHIR)==T,PHIR:=26.37]
 dt[is.na(fitted)==T,fitted:=predict(fit5,dt[is.na(fitted)==T])]
 ```
 
-**The predicted value for 12th month of 2020 is:**
+**The predicted value for the 12th month of 2020 is:**
 
 ```{r}
 colnames(dt)[colnames(dt) == "predicted_sales"] <- "Prediction"
