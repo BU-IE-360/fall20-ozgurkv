@@ -217,7 +217,7 @@ checkresiduals(fit5, col="red")
 
 Summary of the residuals tell a similar story. Indeed, there is less auto-correlation and the distribution of the residuals is closer to normal.
 
-## Inspection and Prediction
+## Final Inspection and Prediction
 
 After the final model is reached, it might be useful to compare Residuals and Fitted Vales to see if there is any correlation among them.
 
