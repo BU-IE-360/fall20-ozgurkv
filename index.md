@@ -16,3 +16,6 @@ You can reach my homework regarding the correlation inquiry of a set of data by 
 
 ### Homework 3 (11.01.2020)
 You can reach my homework regarding time series regression usage for predictions by clicking [**here**](Files/HW3.html).
+
+### Homework 4 (29.01.2020)
+You can reach my homework regarding time series decomposition and ARIMA models by clicking [**here**](Files/HW4.html).
