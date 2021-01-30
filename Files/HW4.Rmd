@@ -373,7 +373,7 @@ model_forecast
 ```
 
 
-## Alternartive Models
+## Alternative Models
 
 At the beginning of our study, I have created an adjusted model by altering some of the outliers based on the religious holiday assumption we have made. Now let's decompose that and fit a new ARIMA model for predictions. Since what steps I will follow are the same as before, I won't be making an extended explanation, instead, I will be providing the end results. After following the same steps with multiplicative decomposition and auto.arima function, I have concluded that an ARIMA(2,0,1) was the best choice with an AIC value of -7420.79.
 
@@ -499,9 +499,6 @@ model_forecast4 <- tsdatanew4[1467:1480]
 
 
 ```
-
-
-
 
 **Here are the predictions of the fourth model:**
 
