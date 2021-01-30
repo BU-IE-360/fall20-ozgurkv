@@ -346,7 +346,7 @@ par(mfrow=c(1,1))
 #plot(random, main = "Actual vs. Fitted Residuals", ylab = "Values")
 #points(model_fitted, type = "l", col = 4, lty = 2)
 
-plot(tsdata, main = "Actual vs. Fitted Model", ylab = "Values")
+plot(tsdata, main = "Actual vs. Fitted Values", ylab = "Values")
 
 model_forecast <- predict(arimafit2, n.ahead = 14)$pred
 model_forecast = ts(model_forecast, start=c(209,7), frequency = 7)
@@ -396,7 +396,7 @@ model_fitted_transformed2 <- model_fitted2*tsdecomp3$trend*tsdecomp3$seasonal
 #plot(random2, main = "Actual vs. Fitted Residuals", ylab = "Values")
 #points(model_fitted2, type = "l", col = 2, lty = 2)
 
-plot(tsdataadj,  main = "Actual vs. Fitted Model", ylab = "Values")
+plot(tsdataadj,  main = "Actual vs. Fitted Values", ylab = "Values")
 
 model_forecast2 <- predict(arimafit6, n.ahead = 14)$pred
 model_forecast2 = ts(model_forecast2, start=c(209,7), frequency = 7)
@@ -438,7 +438,7 @@ model_fitted_transformed3 <- model_fitted3 + tsdecomp2$trend + tsdecomp2$seasona
 #plot(random3, main = "Actual vs. Fitted Residuals", ylab = "Values")
 #points(model_fitted3, type = "l", col = 2, lty = 2)
 
-plot(tsdata, main = "Actual vs. Fitted Model", ylab = "Values")
+plot(tsdata, main = "Actual vs. Fitted Values", ylab = "Values")
 
 model_forecast3 <- predict(arimafit7, n.ahead = 14)$pred
 model_forecast3 = ts(model_forecast3, start=c(209,7), frequency = 7)
@@ -482,7 +482,7 @@ model_fitted_transformed4 <- model_fitted4 + tsdecomp4$trend + tsdecomp4$seasona
 #plot(random4, main = "Actual vs. Fitted Residuals for Model 4", ylab = "Values")
 #points(model_fitted4, type = "l", col = 2, lty = 2)
 
-plot(tsdata,  main = "Actual vs. Fitted Model", ylab = "Values")
+plot(tsdata,  main = "Actual vs. Fitted Values", ylab = "Values")
 
 model_forecast4 <- predict(arimafit8, n.ahead = 14)$pred
 model_forecast4 = ts(model_forecast4, start=c(209,7), frequency = 7)
