@@ -1,0 +1,571 @@
+---
+title: "Examinig Stationarity of a Data Set"
+author: "Ozgur Kaan Varlik - IE360 - Fall 2020"
+date: "29 01 2021"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 2
+    toc_float: true
+    theme: sandstone
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(fpp)
+library(forecast)
+library(data.table)
+library(stats)
+library(readr)
+library(ggplot2)
+library(urca)
+library(ggplot2)
+library(gridExtra)
+library(MLmetrics)
+
+Consumption <- read_csv("Consumption.csv", 
+                        col_types = cols(date = col_date(format = "%d.%m.%Y"), 
+                                         hour = col_time(format = "%H:%M")))
+
+Actual <- read_csv("Actual.csv", col_types = cols(date = col_date(format = "%d.%m.%Y"), 
+    X2 = col_skip()))
+
+data <- setDT(Consumption)
+datafinal <- setDT(Actual)
+
+```
+
+## Introduction
+
+The common assumption when building a time series model is that the data we are dealing with should be stationary, in that the mean, the variance and the autocorrelation structure shouldn't the change much over time. For this purpose, the data has to be separated from any trend or seasonality, so that we are left with a series with constant mean, variance and autocorrelation. This can be achieved by several methods which include "linear regression", "differencing" and "time series decomposition". In this study, we will be working with the daily mean electricity consumption of Turkey and will be using time series decomposition techniques to achieve stationarity, at least to some extent. As we build a model, we will also investigate the behavior of the data and make some commentary on its condition. After some models are fitted, we will be making predictions for the 14 days starting with the 9th of January and will look into the errors of our predictions, in other words, we will compare our predicted values with actual ones and see the extent of our correctness.
+
+## Manipulation and Visualization
+
+The set of data used for the assignment includes the dates, the hours and the hourly electricity consumption amounts (in MWh) from 01/01/2017 to 08/01/2021. Below, the head of the data is shown.
+
+```{r}
+colnames(data)[colnames(data) %in% c("date", "hour", "consumption")] <- c("Date", "Hour", "Consumption")
+head(data)
+```
+
+To examine daily electricity consumption amounts, it is required that we manipulate the data and obtain values which represent each day correctly. I have done this by defining a new data set and taking the mean consumption for each day. Below, we can see the daily mean electricity consumption values by date.
+
+```{r}
+cons <- data$Consumption
+meancons <- c()
+length <- length(cons)/24
+i<-1
+j<-1
+while(i<length+1){
+  meancons[i] <- mean(cons[c(j:(j+23))])
+  j <- j+24
+  i<-i+1
+}
+dt <- data.table(meancons)
+tsdata2 <- ts(meancons, start=c(2017,1),frequency=365) #365 freq data for graphs
+autoplot(tsdata2, col = "orangered2") +  
+  xlab('Time') +
+  ylab('Mean Consumption (MWh)') + 
+  labs(title="Daily Mean Electricity Consumption in Turkey") +
+  theme_minimal() +
+  theme(legend.position="none",plot.title=element_text(hjust=0.5), 
+        axis.line = element_line(colour="gray", size=0.8))
+```
+
+By looking at the graph, one easily say that the data seems to have a degree of yearly seasonality. This can be observed by paying attention to the places where the consumption peaks and plummets. Approximate places seem to recur in each year. Moreover, it can be stated that the data has relatively constant mean and variance, which is desirable in terms of stationarity. However, it might also be a good idea to take the outliers into account. Let's look at the points beyond the 1st and 3rd quartiles of the data to make further comments.
+
+```{r}
+tsdata <- ts(meancons, start=c(0),frequency=7)
+OutVals = boxplot(tsdata, plot=FALSE)$out
+which(tsdata %in% OutVals)
+```
+Above, the indexes of the outliers can be seen. When they are inspected further, it can be observed that most of the outliers coincide with the dates of religious holidays in Turkey. This is probably because during religious holidays, people do not work and the workplaces are usually closed or still active with a very limited capacity. So for one of the models we are going to build, it might be a good idea to manipulate our data and alter the consumption amounts during these dates. I have done this by taking the values from one week before for each date corresponding to a religious holiday and replacing the outliers with them.
+
+```{r}
+meanconsadj <- meancons
+meanconsadj[176] <- meanconsadj[176-7]
+meanconsadj[177] <- meanconsadj[177-7]
+meanconsadj[178] <- meanconsadj[178-7]
+meanconsadj[244] <- meanconsadj[244-7]
+meanconsadj[245] <- meanconsadj[245-7]
+meanconsadj[246] <- meanconsadj[246-7]
+meanconsadj[247] <- meanconsadj[247-7]
+meanconsadj[531] <- meanconsadj[531-7]
+meanconsadj[532] <- meanconsadj[532-7]
+meanconsadj[533] <- meanconsadj[533-7]
+meanconsadj[598] <- meanconsadj[598-7]
+meanconsadj[599] <- meanconsadj[599-7]
+meanconsadj[600] <- meanconsadj[600-7]
+meanconsadj[601] <- meanconsadj[601-7]
+meanconsadj[885] <- meanconsadj[885-7]
+meanconsadj[886] <- meanconsadj[886-7]
+meanconsadj[887] <- meanconsadj[887-7]
+meanconsadj[888] <- meanconsadj[888-7]
+meanconsadj[953] <- meanconsadj[953-7]
+meanconsadj[954] <- meanconsadj[954-7]
+meanconsadj[955] <- meanconsadj[955-7]
+meanconsadj[956] <- meanconsadj[956-7]
+meanconsadj[1239] <- meanconsadj[1239-7]
+meanconsadj[1240] <- meanconsadj[1240-7]
+meanconsadj[1241] <- meanconsadj[1241-7]
+meanconsadj[1242] <- meanconsadj[1242-7]
+meanconsadj[1308] <- meanconsadj[1308-7]
+meanconsadj[1309] <- meanconsadj[1309-7]
+meanconsadj[1310] <- meanconsadj[1310-7]
+meanconsadj[1311] <- meanconsadj[1311-7]
+dt <- cbind(dt,meanconsadj)
+tsdata3 <- ts(meanconsadj, start=c(2017,1),frequency=365) #365 freq data for graphs
+tsdataadj <- ts(meanconsadj, start=c(0),frequency=7)
+plot1 <- autoplot(tsdata2, col = "slateblue1") +  
+  xlab('Time') +
+  ylab('Mean Consumption (MWh)') + 
+  labs(title="Daily Mean Electricity Consumption in Turkey") +
+  theme_minimal() +
+  theme(legend.position="none",plot.title=element_text(hjust=0.5), 
+        axis.line = element_line(colour="gray", size=0.8))
+plot2 <- autoplot(tsdata3, col = "palegreen2") +  
+  xlab('Time') +
+  ylab('Mean Consumption (MWh)') + 
+  labs(title="Adjusted Daily Mean Electricity Consumption in Turkey") +
+  theme_minimal() +
+  theme(legend.position="none",plot.title=element_text(hjust=0.5), 
+        axis.line = element_line(colour="gray", size=0.8))
+grid.arrange(plot1, plot2, nrow=2)
+```
+
+When compared with the actual data, adjusted version seems to have significantly lower variance. Because the adjusted data has lower unpredictability or volatility, it might actually be a good idea to use it in one of our models.
+
+``` {r fig.height=4, fig.width=8}
+tsdatax <- tsdata2[930:980]
+tsdatay <- tsdata3[930:980]
+tsdatax <- ts(tsdatax, start = 1, frequency = 1)
+tsdatay <- ts(tsdatay, start = 1, frequency = 1)
+
+plotx <- autoplot(tsdatax, col = "red2", size=1) +  
+  xlab('Time (50 Days)') +
+  ylab('Mean Consumption (MWh)') + 
+  labs(title="Electricity Consumption") +
+  theme_minimal() +
+  theme(legend.position="none",plot.title=element_text(hjust=0.5), 
+        axis.line = element_line(colour="gray", size=1),
+        axis.text.y = element_text(angle = 90, vjust =0.5, hjust=0.5))
+ploty <- autoplot(tsdatay, col = "aquamarine2", size = 1) +  
+  xlab('Time (50 Days)') +
+  ylab('Mean Consumption (MWh)') + 
+  labs(title="Adjusted Electricity Consumption") +
+  theme_minimal() +
+  theme(legend.position="none",plot.title=element_text(hjust=0.5), 
+        axis.line = element_line(colour="gray", size=1),
+        axis.text.y = element_text(angle = 90, vjust =0.5, hjust=0.5))
+grid.arrange(plotx, ploty, ncol=2)
+```
+
+Above, an example is given to point out the effects of the outliers. The 50 days I have used to build these graphs also include the dates of the Sacrifice Feast 2019. It can be seen that the data deters significantly from the mean during these periods, which also might cause problems with the stationarity and affect our predictions negatively.
+
+Another remark I would like to make here is the weekly seasonality that is very clear to observe. As one easily see, each week has a very similar structure. It may be wise to take weekly seasonality into account and build our model accordingly. 
+
+```{r}
+tsdataz <- tsdata2[1:730]
+tsdataz <- ts(tsdataz, start = 1, frequency = 1)
+
+plotz <- autoplot(tsdataz, col = "coral") +  
+  xlab('Days (over 2 Years)') +
+  ylab('Mean Consumption (MWh)') + 
+  labs(title="Mean Electricity Consumption") +
+  theme_minimal() +
+  theme(legend.position="none",plot.title=element_text(hjust=0.5), 
+        axis.line = element_line(colour="gray", size=0.8))
+plott <- ggAcf(tsdataz, col = "blueviolet", lag.max = 730) +  
+  xlab('Lag') +
+  ylab('ACF') + 
+  labs(title="Mean Electricity Consumption ACF") +
+  theme_minimal() +
+  theme(legend.position="none",plot.title=element_text(hjust=0.5), 
+        axis.line = element_line(colour="gray", size=0.8))
+grid.arrange(plotz, plott, nrow=2)
+```
+
+Looking deeper into what has been stated about yearly seasonality in the beginning and the graphs above, it can be observed that the data from one year is significantly correlated with the ones from other years. So, it may in fact be a good idea to factor out the day of the year effect from our data and build our model onto it. Afterwards, we can add the effect back to have the actual predicted values. Moving forward, when building one of the models, the day of the year effect will be addressed and the 1st of January will be taken as a base case during the application.
+
+```{r}
+yearly_means <- c()
+for(i in 1:365){
+  m <- meancons
+  n<- m[seq(i, length(m), 365)]
+  yearly_means[i] <- mean(n)
+}
+yearly_means2 <- rep(c(yearly_means[1]),times=1480)
+yearly_means <- yearly_means2[1:1469]
+
+#significant autocorrelation between weeks
+Box.test(tsdata,lag=7,type="Ljung-Box")
+
+#significant autocorrelation between years
+Box.test(tsdata,lag=365,type="Ljung-Box")
+```
+
+As the final part of our visualization, let's have a look at the results from the Box-Ljung Test, which shows if there is a significant level of autocorrelation at a given lag. For the purpose of our analysis so far, the test was carried out for lag 7 and 365. Both results suggested that the autocorrelation among the data is very significant.
+
+## Time Series Decomposition
+
+After visually inspecting the daily mean consumption amounts visually and making the necessary manipulations, now it is time to decompose the data so that we are left with hopefully a series that is as stationary as possible. Two decomposition methods will be used, namely the additive and the multiplicative.
+
+Please note that I will be using the initial, unadjusted data for the decomposition. However, in the upcoming parts of the study, I am going to look into the alternative models and comparing them with the actual data as well.
+
+```{r fig.height=4, fig.width=7}
+tsdecomp <- decompose(tsdata,type="multiplicative")
+tsdecomp2 <- decompose(tsdata,type="additive")
+plot(tsdecomp, col = "skyblue2")
+```
+
+After a simple visual inspection, I came to the conclusion that one model did not seem better than the other, but for the sake of the study, I will be moving forward with the multiplicative model and start the decomposition process.
+
+```{r fig.height=6, fig.width=7}
+deseasonalized <- tsdata/tsdecomp$seasonal
+tsdeseasonalized <- ts(deseasonalized, start = c(2017,1), frequency = 365)
+plot3 <- autoplot(tsdata2, col = "darkorange1") +  
+  xlab('Time') +
+  ylab('Mean Consumption (MWh)') + 
+  labs(title="Electricity Consumption") +
+  theme_minimal() +
+  theme(legend.position="none",plot.title=element_text(hjust=0.5), 
+        axis.line = element_line(colour="gray", size=0.8))
+plot4 <- autoplot(tsdeseasonalized, col = "aquamarine2") +  
+  xlab('Time') +
+  ylab('Mean Consumption (MWh)') + 
+  labs(title="Deseasonalized Electricity Consumption") +
+  theme_minimal() +
+  theme(legend.position="none",plot.title=element_text(hjust=0.5), 
+        axis.line = element_line(colour="gray", size=0.8))
+plotgg <- ggAcf(deseasonalized, lag.max=730, col = "coral2") +  
+  xlab('Lag') +
+  ylab('ACF') + 
+  labs(title="Deseasonalized Electiricty Consumption ACF") +
+  theme_minimal() +
+  theme(legend.position="none",plot.title=element_text(hjust=0.5), 
+        axis.line = element_line(colour="gray", size=0.8))
+grid.arrange(plot3, plot4, plotgg, nrow=3)
+
+```
+
+When deseasonalized data is compared with the initial data, it can be seen that the effect weekly seasonality has been significantly reduced. However, yearly seasonality seems to be still very much present. We might have to address this issue later if stationarity is not observed at the end of our decomposition.
+
+```{r}
+detrend <- deseasonalized/tsdecomp$trend
+tsdetrend <- ts(detrend, start = c(2017,1), frequency = 365)
+
+plot5 <- autoplot(tsdetrend, col = "palevioletred1") +  
+  xlab('Time') +
+  ylab('Mean Consumption (MWh)') + 
+  labs(title="Detrended Electiricty Consumption") +
+  theme_minimal() +
+  theme(legend.position="none",plot.title=element_text(hjust=0.5), 
+        axis.line = element_line(colour="gray", size=0.8))
+plot6 <- ggAcf(detrend, col = "seagreen", lag.max=730) +  
+  xlab('Lag') +
+  ylab('ACF') + 
+  labs(title="Detrended Electiricty Consumption ACF") +
+  theme_minimal() +
+  theme(legend.position="none",plot.title=element_text(hjust=0.5), 
+        axis.line = element_line(colour="gray", size=0.8))
+grid.arrange(plot5, plot6, nrow=2)
+
+random <- detrend
+```
+
+Now that we have removed the trend element, the remaining part visually seems quite close to stationary. However, the autocorrelation function shows, by peaking every 365 lags, that yearly autocorrelation is still present. Nevertheless, let's see if the remaining data can be considered stationary.
+
+```{r}
+summary(ur.kpss(random))
+```
+
+By looking at the results of KPSS Unit Root Test, we cannot reject the null hypothesis that the series is stationary, so we have acquired a series that is at least somewhat stationary.
+
+## Selecting and Fitting an ARIMA Model
+
+Now that the series has been decomposed and the remaining data can be assumed stationary, we can fit an ARIMA model t make predictions. First, let's decide if we can determine a good model to fit by visual analysis.
+
+```{r}
+plot7 <- ggAcf(random, col = "red", lag.max = 28, size=1) +  
+  xlab('Lag') +
+  ylab('ACF') + 
+  labs(title="Detrended Electiricty Consumption ACF") +
+  theme_minimal() +
+  theme(legend.position="none",plot.title=element_text(hjust=0.5), 
+        axis.line = element_line(colour="gray", size=0.8))
+plot8 <- ggPacf(random, col = "purple", lag.max = 28, size=1) +  
+  xlab('Lag') +
+  ylab('PACF') + 
+  labs(title="Detrended Electiricty Consumption PACF") +
+  theme_minimal() +
+  theme(legend.position="none",plot.title=element_text(hjust=0.5), 
+        axis.line = element_line(colour="gray", size=0.8))
+grid.arrange(plot7, plot8, nrow=2)
+```
+
+At first glance, both ACF and PACF show gradual decrease, so using an ARIMA(1,0,1) model might be a good idea. Moreover, we can also build a Moving Average model if we take into account that the ACF cuts after just one lag. Afterwards, again by observing ACF we can say an MA(5) model might be a reasonable due to ACF going below the confidence level after 5 lags.
+
+```{r}
+arimafit1 <- arima(random, order = c(0,0,5))
+arimafit1
+
+arimafit1_1 <- arima(random, order = c(1,0,1))
+arimafit1_1
+
+```
+
+Now that we have fitted two models, it can be seen from AIC values that an MA(5) model is the more suitable choice. Let's continue by using the auto.arima function to see if it gives us any model with a better AIC value.
+
+```{r}
+auto.arima(random, seasonal = FALSE, trace = F)
+arimafit2 <- arima(random, order = c(2,0,4))
+```
+
+The auto.arima function provided a model with an AIC value of -7142.04, which is lower than the values we have obtained, so we can continue with the model found by the auto.arima function, namely the ARIMA(2,0,4) model.
+
+```{r}
+layout(matrix(c(1,1,2,3), 2, 2, byrow = TRUE))
+plot(arimafit2$residuals, main = "Residuals of the Fitted Model", xlab = "Values", col = "slategray")
+Acf(arimafit2$residuals, na.action = na.pass, main = "ACF", col = "red1")
+Pacf(arimafit2$residuals, na.action = na.pass, main = "PACF", col = "seagreen")
+```
+
+As one can see, the ACF and PACF shows promising results. Now that we have obtained our model that we are going to use, it's time to fit our values and make our predictions.
+
+## Making Predictions
+
+Finally, let's now predict mean consumption values for the 2 weeks after the 8th of January.
+
+```{r fig.height=4, fig.width=8}
+model_fitted <- random - residuals(arimafit2)
+model_fitted_transformed <- model_fitted*tsdecomp$trend*tsdecomp$seasonal
+
+par(mfrow=c(1,1))
+
+#the values seem to be lagging to some extent
+#plot(random, main = "Actual vs. Fitted Residuals", ylab = "Values")
+#points(model_fitted, type = "l", col = 4, lty = 2)
+
+plot(tsdata, main = "Actual vs. Fitted Model", ylab = "Values")
+
+model_forecast <- predict(arimafit2, n.ahead = 14)$pred
+model_forecast = ts(model_forecast, start=c(209,7), frequency = 7)
+
+last_trend_value <-tail(tsdecomp$trend[!is.na(tsdecomp$trend)],1)
+
+seasonality = tsdecomp$seasonal[7:20]
+
+#back to the original series
+model_forecast = model_forecast*last_trend_value*seasonality
+tsdatanew <- c(model_fitted_transformed, model_forecast)
+tsdatanew <- ts(tsdatanew, start = c(0), frequency = 7)
+points(tsdatanew, type = "l", lty = 2, col = 3)
+model_forecast <- as.numeric(model_forecast)
+
+```
+
+By using an ARIMA model and time series decomposition, we have come up with predictions. For the next part of the study, we will be exploring different manipulations we could have made and make new predictions based on them. 
+
+**Just below are the predictions we have made using the above model:**
+
+```{r}
+model_forecast
+```
+
+
+## Alternartive Models
+
+At the beginning of our study, I have created an adjusted model by altering some of the outliers based on the religious holiday assumption we have made. Now let's decompose that and fit a new ARIMA model for predictions. Since what steps I will follow are the same as before, I won't be making an extended explanation, instead, I will be providing the end results. After following the same steps with multiplicative decomposition and auto.arima function, I have concluded that an ARIMA(2,0,1) was the best choice with an AIC value of -7420.79.
+
+```{r fig.height=4, fig.width=8}
+tsdecomp3 <- decompose(tsdataadj,type="multiplicative")
+#plot(tsdecomp3)
+deseasonalized2 <- tsdataadj/tsdecomp3$seasonal
+detrend2 <- deseasonalized2/tsdecomp3$trend
+random2 <- detrend2
+
+#auto.arima(random2, seasonal = FALSE)
+arimafit6 <- auto.arima(random2, seasonal = FALSE)
+#arimafit6
+
+#summary(ur.kpss(arimafit6$residuals))
+
+model_fitted2 <- random2 - residuals(arimafit6)
+model_fitted_transformed2 <- model_fitted2*tsdecomp3$trend*tsdecomp3$seasonal
+
+#plot(random2, main = "Actual vs. Fitted Residuals", ylab = "Values")
+#points(model_fitted2, type = "l", col = 2, lty = 2)
+
+plot(tsdataadj,  main = "Actual vs. Fitted Model", ylab = "Values")
+
+model_forecast2 <- predict(arimafit6, n.ahead = 14)$pred
+model_forecast2 = ts(model_forecast2, start=c(209,7), frequency = 7)
+
+last_trend_value2 <-tail(tsdecomp3$trend[!is.na(tsdecomp3$trend)],1)
+seasonality2 = tsdecomp3$seasonal[7:20]
+#back to the original series
+model_forecast2 = model_forecast2*last_trend_value2*seasonality2
+tsdatanew2 <- c(model_fitted_transformed2, model_forecast2)
+tsdatanew2 <- ts(tsdatanew2, start = c(0), frequency = 7)
+points(tsdatanew2, type = "l", lty = 2, col = 6)
+model_forecast2 <- as.numeric(model_forecast2)
+```
+
+**Here are the predictions of the second model:**
+
+```{r}
+model_forecast2
+```
+
+Another possibility we have mentioned was the use of the additive decomposition technique, since it didn't seem significantly different the multiplicative. So, I followed similar steps for this model, except that I have used additive decomposition. After decomposing the data by subtraction instead of division, I ran the auto.arima function and it suggested an MA(2) model. 
+
+```{r fig.height=4, fig.width=8}
+tsdecomp2 <- decompose(tsdata,type="additive")
+#plot(tsdecomp2)
+deseasonalized3 <- tsdata - tsdecomp2$seasonal
+detrend3 <- deseasonalized3 - tsdecomp2$trend
+random3 <- detrend3
+
+#auto.arima(random3, seasonal = FALSE)
+arimafit7 <- auto.arima(random3, seasonal = FALSE)
+#arimafit7
+
+#summary(ur.kpss(arimafit7$residuals))
+
+model_fitted3 <- random3 - residuals(arimafit7)
+model_fitted_transformed3 <- model_fitted3 + tsdecomp2$trend + tsdecomp2$seasonal
+
+#plot(random3, main = "Actual vs. Fitted Residuals", ylab = "Values")
+#points(model_fitted3, type = "l", col = 2, lty = 2)
+
+plot(tsdata, main = "Actual vs. Fitted Model", ylab = "Values")
+
+model_forecast3 <- predict(arimafit7, n.ahead = 14)$pred
+model_forecast3 = ts(model_forecast3, start=c(209,7), frequency = 7)
+
+last_trend_value3 <-tail(tsdecomp2$trend[!is.na(tsdecomp2$trend)],1)
+seasonality3 = tsdecomp2$seasonal[7:20]
+#back to the original series
+model_forecast3 = model_forecast3 + last_trend_value3 + seasonality3
+tsdatanew3 <- c(model_fitted_transformed3, model_forecast3)
+tsdatanew3 <- ts(tsdatanew3, start = c(0), frequency = 7)
+points(tsdatanew3, type = "l", lty = 2, col = 4)
+model_forecast3 <- as.numeric(model_forecast3)
+```
+
+**Here are the predictions of the third model:**
+
+```{r}
+model_forecast3
+```
+
+Finally, one last modification was mentioned, that is subtracting the day of year effect from the data and adding it back after making predictions. For this application, I have used additive decomposition and followed very similar steps. The auto.arima function suggested an ARIMA(1,0,1) model. However the AIC value I have obtained was higher than the one from the above model.
+
+```{r fig.height=4, fig.width=8}
+meanconsyearly <-  meanconsadj - yearly_means
+tsdataadjyear <- ts(meanconsyearly, start=c(0),frequency=7)
+tsdecomp4 <- decompose(tsdataadjyear,type="additive")
+#plot(tsdecomp2)
+deseasonalized4 <- tsdataadjyear - tsdecomp4$seasonal
+detrend4 <- deseasonalized4 - tsdecomp4$trend
+random4 <- detrend4
+
+#auto.arima(random4, seasonal = F)
+arimafit8 <- auto.arima(random4, seasonal = F)
+#arimafit8
+
+#summary(ur.kpss(arimafit8$residuals))
+
+model_fitted4 <- random4 - residuals(arimafit8)
+model_fitted_transformed4 <- model_fitted4 + tsdecomp4$trend + tsdecomp4$seasonal
+
+#plot(random4, main = "Actual vs. Fitted Residuals for Model 4", ylab = "Values")
+#points(model_fitted4, type = "l", col = 2, lty = 2)
+
+plot(tsdata,  main = "Actual vs. Fitted Model", ylab = "Values")
+
+model_forecast4 <- predict(arimafit8, n.ahead = 14)$pred
+model_forecast4 = ts(model_forecast4, start=c(209,7), frequency = 7)
+
+last_trend_value4 <-tail(tsdecomp4$trend[!is.na(tsdecomp4$trend)],1)
+seasonality4 = tsdecomp4$seasonal[7:20]
+#back to the original series
+model_forecast4 = model_forecast4 + last_trend_value4 + seasonality4
+tsdatanew4 <- c(model_fitted_transformed4, model_forecast4)
+tsdatanew4 <- tsdatanew4 + yearly_means2
+tsdatanew4 <- ts(tsdatanew4, start = c(0), frequency = 7)
+points(tsdatanew4, type = "l", lty = 2, col = "coral1")
+model_forecast4 <- tsdatanew4[1467:1480]
+
+
+```
+
+
+
+
+**Here are the predictions of the fourth model:**
+
+```{r}
+model_forecast4
+```
+
+## Comparison and Conclusion
+
+We have fitted four different models and made predictions accordingly. Now, we should continue by comparing them
+and finding out which one was the best predictor.
+
+```{r fig.height=4, fig.width=6}
+actualcons <- datafinal$consumption
+MAPE1 <- c()
+MAPE2 <- c()
+MAPE3 <- c()
+MAPE4 <- c()
+for(j in 1:14){
+  MAPE1[j] <- MAPE(model_forecast[j],actualcons[j])
+  MAPE2[j] <- MAPE(model_forecast2[j],actualcons[j])
+  MAPE3[j] <- MAPE(model_forecast3[j],actualcons[j])
+  MAPE4[j] <- MAPE(model_forecast4[j],actualcons[j])
+}
+
+Actual1 <- cbind(datafinal,model_forecast,model_forecast2,model_forecast3,model_forecast4)
+Actual2 <- cbind(datafinal,MAPE1,MAPE2,MAPE3,MAPE4)
+setDT(Actual1)
+setDT(Actual2)
+
+colnames(Actual1)[colnames(Actual1) %in% c("date", "consumption", "model_forecast", "model_forecast2", "model_forecast3","model_forecast4")] <- c("Date", "Actual", "Model 1", "Model 2", "Model 3", "Model 4")
+
+colnames(Actual2)[colnames(Actual2) %in% c("date", "consumption")] <- c("Date", "Actual")
+Actual1
+
+```
+
+By looking at the results from the models and the actual values, one can say that they have managed to predict well at times. It might be a good idea to plot them to together.
+
+```{r}
+Actual1 %>%
+  ggplot(aes(x = Date, y = Actual)) + geom_line(col = "coral1",size = 1) + geom_line(y = Actual1$`Model 1`, col = "blue") + 
+   labs(title="Actual vs. Predicted Values") +
+   ylab('Mean Consumption (MWh)') +
+  geom_line(y = Actual1$`Model 2`, col = "skyblue1") +  geom_line(y = Actual1$`Model 3`, col = "green") +
+  geom_line(y = Actual1$`Model 4`, col = "purple") +  ylim(29500, 40500) +   theme_minimal() +
+  theme(legend.position="none",plot.title=element_text(hjust=0.5), 
+        axis.line = element_line(colour="gray", size=0.8)) 
+```
+
+As can be seen, although the behavior of the models are similar to the actual values, it seems that they have all somewhat underpredicted the model. Let's find out which model performed best by comparing their mean absolute percentage errors. 
+
+```{r}
+Means2 <- cbind(MAPE1,MAPE2,MAPE3,MAPE4)
+Means <- c(mean(MAPE1),mean(MAPE2),mean(MAPE3),mean(MAPE4))
+res <- rbind(Means2,Means)
+res
+```
+
+Above the MAPE values for each model is given. It can be seen that the best performing model is MODEL 3 with mean absolute error around  5.08% on average, in which we have used additive decomposition with unadjusted data.  
+
+To conclude, let's summarize what we have done and comment on it. Firstly, we have taken the data and inspected it visually in order to gather information and generate ideas. After our visual analysis, we had the map of what we were going to do. So with everything in mind, we started decomposing the time series. After the decomposition, we have checked stationarity with the KPSS Unit Root Test and it suggested that our data could indeed be considered stationary. However, although we had eliminated weekly seasonality to some extent, we still had visible yearly seasonality, but the test result suggested a very low p-value which led me to believe that our data was stationary enough. One should keep in mind that it is not possible to have perfect test results since we are dealing with the real world data and there will always be some missing information, but our aim always is to be as close to the reality as possible. Afterwards, we fitted several ARIMA models and decided on the best one, which was a mix of AR and MA models. At last, we found the fitted values and made our predictions. It is worth mentioning that we have also considered other possibilities to not miss the best model. Even though our ideas of manipulating the data made sense logically, they weren't as successful when predicting compared to our simple additive decomposition model with undajusted data. Also, it should be pointed out that all of our predictions were underpredicting, which may be due to our predictions' inability to keep up with the actual data. When making predictions regarding a real world data, one should always consider that there are so many factor affecting the outcome of any data, so a 100% accurate prediction can not be possible. 
+
+### You can reach the R Markdown file of my work by clicking [**here**](https://github.com/BU-IE-360/fall20-ozgurkv/blob/master/Files/HW4.Rmd).
+
+
+
