@@ -1,16 +1,19 @@
 ---
-title: "Forecasting the Hourly Electricity Consumption in Turkey"
-author: 
-- name: "Group 4 - IE360 - Fall 2020"
-- name: "Safiye Şahin - Fatma İlayda Tutal - Özgür Kaan Varlık"
-date: "15/02/2021"
+title: "Project Presentation"
+author: "IE360 - Fall 2020 - Group 4: Safiye Şahin - Fatma İlayda Tutal - Özgür Kaan Varlık"
 output: 
-  html_document:
-    toc: true
-    toc_depth: 3
-    toc_float: true
-    theme: united
+  ioslides_presentation:
+    widescreen: true
+    smaller: true
+#    template: quarterly-report.html
 ---
+
+<style>
+slides > slide{
+  overflow-x: auto !important;
+  overflow-y: auto !important;
+}
+</style>
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
@@ -36,30 +39,34 @@ consumption[,Date:=as.Date(Date)]
 
 ```
 
-## Introduction
+# Introduction
 
-There are several factors affecting the electricity consumption of a country. One aspect for sure to be considered is the industrial developments in that country. In an underdeveloped country, since a lot of people don't have the access to electricity, they won't be able to consume it. This is the case for many developing countries such as Nigeria, Bangladesh and Indonesia. On the other hand, in a developed country with great industrial advancements, a significant portion of the electricity consumption is dedicated to the industry and most of its citizens are connected to the electricity grid.  
+---
 
-Another very important aspect is the overall climate in that country. When electricity consumption per capita is investigated, it can be seen that a country that is generally considered to have a colder climate and harsher weather conditions tends to have a higher consumption per capita. This is most probably due to the increasing utilization of heating sources in that country. That's one of the reasons why countries like Canada, Iceland, Norway and Sweden have the highest electricity consumption per person among other countries. However, one should also consider that air-conditioning requires a significant amount of electricity too. So it's not necessary for a country to be considered "cold" to consume a great deal of electricity, but this is mostly applicable to a more developed country.
+There are several factors affecting the electricity consumption of a country. One aspect for sure to be considered is the industrial developments in that country. In an underdeveloped country, since a lot of people don't have the access to electricity, they won't be able to consume it.  
 
-Population is also an important indicator of the level of electricity consumption. If there are more people living in a country, it is very much expected that it has a higher overall electricity consumption. Surely the effect of population can be seen in countries like China and India. However, it is worth mentioning that because some highly populated countries are still "developing", they have relatively lower electricity consumption levels. Therefore having a high population is not a guarantee of high electricity consumption as well.
+Another very important aspect is the overall climate in that country. When electricity consumption per capita is investigated, it can be seen that a country that is generally considered to have a colder climate and harsher weather conditions tends to have a higher consumption per capita. 
 
-All in all, there are many aspects, some of which have not been discussed such as the level of insulation of houses in that country, that have an impact on the electricity consumption of a country. For the case of Turkey, it is for sure that the weather conditions will have a great influence, since Turkey is a country where all 4 seasons can be experienced. Furthermore, Turkey is a country that has 7 regions with very distinct climates, industrial developments and populations. So, it should be expected that different regions will have very different levels of consumption. 
+Population is also an important indicator of the level of electricity consumption. If there are more people living in a country, it is very much expected that it has a higher overall electricity consumption.
+
+All in all, there are many aspects, some of which have not been discussed such as the level of insulation of houses in that country, that have an impact on the electricity consumption of a country. For the case of Turkey, it is for sure that the weather conditions will have a great influence, since Turkey is a country where all 4 seasons can be experienced.
 
 The aim of this study is to investigate the hourly electricity consumption in Turkey, decide on the possible factors that may affect the electricity consumption and build a forecasting model accordingly. The study will start with the visualization of the electricity consumption data, then move on with building a forecasting model. Afterwards, hourly consumption amounts will be predicted for 14 days using the model and the results will be interpreted, as well as several alternative improvements will be discussed. 
 
-## Visualization and Manipulation
+# Visualization and Manipulation
+
+---
 
 The set of data used for the assignment includes the date, the hour, the consumption amounts (for each hour of the day) and again hourly temperature values from 7 different locations in Turkey from January 2017 to February 2021. Below, the head of the data is shown.
 
 ```{r, layout="l-body-outset"}
-library(rmarkdown)
-paged_table(head(consumption,10))
+library(knitr)
+kable(head(consumption,10))
 ```
 
-For the sake of the project, the consumption amounts will be subjected to an in-depth visual analysis in order to decide on the general outline of the approach that will be implemented to make forecasts. Firstly, it is very necessary to plot the hourly consumption amounts together before making any further comments.
+---
 
-```{r fig.height=4, fig.width=11}
+```{r fig.height=4, fig.width=9}
 library(ggplot2)
 ggplot() + 
   geom_line(data = consumption[1:(.N-48),], aes(x = Date, y = Consumption, color=Consumption),size = 1) +
@@ -76,7 +83,7 @@ ggplot() +
 
 Although it is difficult to interpret the graph since the scale of the data to be manipulated is quite big, it can be observed that there is a significant degree of yearly seasonality, in that for each year, there seems to be a repeating pattern. 
 
-It should be stated that for the rest of the visual analysis and for the approach to be implemented, daily values will be utilized, since it is much easier to make observations with daily values. In order to obtain the new set of data, first, the mean consumption for each day was calculated and for the case of the temperatures, the maximum and the minimum for each hour among all locations were taken and two columns were created, where the the mean of maximum and the minimum temperatures for each day are stored. Below the newly created head of data can be seen.
+---
 
 ```{r}
 daily_consumption=consumption[,list(mean_consumption=mean(Consumption,na.rm=T), 
@@ -89,14 +96,9 @@ colnames(daily_consumption_shown)[colnames(daily_consumption_shown) %in% c("mean
 #head(daily_consumption_shown,10)
 ```
 
-```{r, layout="l-body-outset"}
-library(rmarkdown)
-paged_table(head(daily_consumption_shown,10))
-```
-
 Now, it may be useful to plot the mean consumption amounts together and reanalyze the daily graph to make further inferences.
 
-```{r fig.height=4, fig.width=11}
+```{r fig.height=4, fig.width=9}
 daily_consumption=consumption[,list(mean_consumption=mean(Consumption,na.rm=T), 
                                     mean_maxt=mean(max(T_1), max(T_2), max(T_3), max(T_4), max(T_5), max(T_6), max(T_7)),
                                     mean_mint=mean(min(T_1), min(T_2), min(T_3), min(T_4), min(T_5), min(T_6), min(T_7))),by=list(Date)]
@@ -118,7 +120,9 @@ ggplot() +
 
 At first glance, the yearly seasonality is again very visible and it should be accounted for when building a forecasting approach. Secondly, there seems to be some outliers where the mean consumption plummets. It may be a good idea to investigate those points where the sudden decreases occur, since if they are left unconsidered, they might affect the approach and result in poor forecasts. Plotting the mean consumption values in one year should be useful to make further comments.
 
-```{r fig.height=4, fig.width=11}
+---
+
+```{r fig.height=4, fig.width=9}
 ggplot() + 
   geom_line(data = daily_consumption1[Date > as.Date("2018-12-31") & Date < as.Date("2019-12-31"),], aes(x = Date, y = mean_consumption, color=mean_consumption),size = 1) +
   scale_colour_gradient2(low = "cyan2", mid = "cyan3" , 
@@ -133,7 +137,9 @@ ggplot() +
 
 When the outliers are investigated, it can be noticed that most of them coincide with religious holidays such as Eid al-Fitr or Eid al-Adha. The first day of the year is also and almost always can be considered as an outlier. The reason that the consumption decreases in those days specifically is probably that during those days, the workplaces are mostly closed or active with a limited capacity. Therefore, it should be wise to take into account the dates of religious holidays and the first day of the year when building the approach.
 
-```{r fig.height=4, fig.width=11}
+---
+
+```{r fig.height=4, fig.width=9}
 ggplot() + 
   geom_line(data = daily_consumption1[9:43,], aes(x = Date, y = mean_consumption, color=mean_consumption),size = 1) +
   scale_colour_gradient2(low = "seagreen2", mid = "seagreen3" , 
@@ -148,9 +154,9 @@ ggplot() +
 
 Above, the plot of mean consumption amounts for 5 weeks can be seen. By looking at the graph, it is immediately observed that there is a significant degree of weekly seasonality that should be considered. Moreover, the consumption appears to be higher during the week and lower on weekends. This is most probably due to the fact that workplaces are usually closed on weekends.
 
-It may be helpful to plot the autocorrelation function and make further comments regarding the data.
+---
 
-```{r fig.height=4, fig.width=11}
+```{r fig.height=4, fig.width=9}
 ggAcf(daily_consumption1$mean_consumption, col = "blueviolet", lag.max = 70, size=1) +  
   xlab('Lag') +
   ylab('ACF') + 
@@ -161,7 +167,9 @@ ggAcf(daily_consumption1$mean_consumption, col = "blueviolet", lag.max = 70, siz
 ```
 The autocorrelation function seems to support to the argument that there is a degree of weekly seasonality, in that the ACF values appear to rise at every 7th lag. It should also be mentioned that the data shows a significant level of autocorrelation at lag 1.
 
-```{r fig.height=4, fig.width=11}
+---
+
+```{r fig.height=4, fig.width=9}
 ggplot() + 
   geom_line(data = daily_consumption1[Date > as.Date("2019-8-31"),], aes(x = Date, y = mean_consumption, color=mean_consumption),size = 1) +
   scale_colour_gradient2(low = "coral", mid = "darkorange" , 
@@ -176,9 +184,9 @@ ggplot() +
 
 Above, the data is shown starting from the beginning of September 2019. It should be noticed that starting with April 2020, there seems to be a significant decrease in consumption. This is presumably because of the fact that the Coronavirus entered and started to spread in Turkey first in March 2020 and soon after, the schools were temporarily closed and some businesses switched to working from home. So, the effects of the pandemic has to be considered and when building a forecasting model.
 
-Before moving forward, the temperature values should be considered.
+---
 
-```{r fig.height=4, fig.width=11}
+```{r fig.height=4, fig.width=9}
 color <- c("Mean Consumption"="slateblue3","Mean Max Temperature"="palevioletred1","Mean Min Temperature"="mediumvioletred")
 g<- ggplot() +
   geom_line(data=daily_consumption_shown,aes(x= Date,y=`Mean Consumption`, color = "Mean Consumption")) +
@@ -205,7 +213,9 @@ g
 
 By comparison, it can easily be observed that both mean maximum temperature and mean minimum temperature have a degree of correlation with daily electricity consumption amounts, in that their overall patters seem to be quite similar with each of them increasing and decreasing in similar periods of the year. Therefore, it has to be a good idea to take at least one of them as a regressor when building a model.
 
-## Approach
+# Approach
+
+---
 
 As it is discussed in the visualization part of the study, independent variables that were considered as possible regressors (i.e. Temperature, Day of the Week, Day of the Year, Holidays etc.) are added to the main daily data.
 
@@ -234,15 +244,17 @@ colnames(daily_consumption_shown2)[colnames(daily_consumption_shown2) %in% c("Da
 ```
 
 ```{r, layout="l-body-outset"}
-library(rmarkdown)
-paged_table(tail(daily_consumption_shown2, 10))
+library(knitr)
+kable(tail(daily_consumption_shown2, 5))
 ```
 
 To find the most suitable model, different combinations of the candidate regressors in the daily data set are fitted into separate regression models. According to the comparison of the results from these models, best one will chosen to make predictions.
 
-### Model 1
+## Model 1
 
-As a base model, only  the *time index* and *temperature* variables are added to and a model is built to explore the relationship between the mean consumption, time and the given temperature information. Since the distribution of mean maximum and mean minimum temperature values appear to be extremely similar in comparison, using only one of them is reasonable. It should be mentioned that both of in a model together may result in overfitting, i.e. poor forecasts.
+### As a base model, only  the *time index* and *temperature* variables are added to and a model is built to explore the relationship between the mean consumption, time and the given temperature information. Since the distribution of mean maximum and mean minimum temperature values appear to be extremely similar in comparison, using only one of them is reasonable. It should be mentioned that both of in a model together may result in overfitting, i.e. poor forecasts.
+
+---
 
 ```{r}
 fitlm_1=lm(mean_consumption~time_index+mean_maxt, daily_consumption1)
@@ -251,7 +263,7 @@ summary(fitlm_1)
 
 As it is expected, added variables have turned out to be significant to the model; however, the adjusted R-squared value is much lower than desired and the residual standard error is very high. To increase the adjusted R-squared value, other possible regressors will be considered.
  
-### Model 2
+## Model 2
 
 Since weekly seasonality is very visible in the graphs shown while analyzing the daily consumption data, a variable that specifies *the day of the week* can be added to the model in order to somewhat account for the seasonality.
 
@@ -263,7 +275,7 @@ summary(fitlm_2)
 
 When the summary is  examined, it appears that although only some of the days are significant to the model, adjusted R-squared value has increased with a considerably lower residual standard error. 
 
-### Model 3
+## Model 3
 
 Additionally, the yearly seasonality that was observed earlier may be explained by specifying *the day of the year* with a new variable. This variable can take values between 1 and 365 (or 366 if it's a leap year).
 
@@ -275,7 +287,7 @@ summary(fitlm_3)
 
 Unfortunately, the *day of the year* appears to be insignificant to the model with a p-value of 0.148 and very little change in the residual standard error. This may be due to some of the yearly seasonality being explained by the day of the week effect. However, before removing this variable immediately, one or two variables will be put into the model to see if the *day of the year* becomes significant or not. If not, it is safe to assume that removing the variable will not cause a notable loss to the accuracy of the model. The reason for this approach is that the effect of a variable can change depending on the addition or removal of other regressors from the model.
 
-### Model 4
+## Model 4
 
 In this model, a variable to specify *the month* is added, which may be helpful to see if the month a day is in has a considerable influence on the electricity consumption on that day or not.
 
@@ -287,7 +299,7 @@ summary(fitlm_4)
 
 Increased adjusted R-squared and decreased residual standard error indicate that the model has improved a lot and most of the months appear to be significant. On the other hand, day of the year is still seems irrelevant to the model; so, it is removed permanently.
 
-### Model 5
+## Model 5
 
 As it was discussed in the previous part, with the onset of the pandemic, some visible changes were observed in the pattern of the data. To reflect these changes, a regressor to remark *the pandemic* can be added to the model. For this purpose, the period starting from the 11th of March 2020 is taken, which is the date where the Ministry of Health announced the first Covid-19 case in Turkey.
 
@@ -298,7 +310,7 @@ summary(fitlm_5)
 
 The regressor is found to be significant to the model. Moreover, adjusted-R squared has increased and residual standard error has decreased considerably.
 
-### Model 6
+## Model 6
 
 In this further model, a variable that is named *holiday* is added in order to explain the effect of the religious holidays and the first day of the year since it appears that there is usually very low electricity consumption on these days. Among the mentioned dates, only weekdays (not weekends) are marked as 1 and the remaining ones as 0, since in a regular week, the consumption is notably lower on weekends, so including those days when creating this variable may mislead the model.
 
@@ -309,7 +321,7 @@ summary(fitlm_6)
 
 The low p-value of the holiday variable tells that it is a significant regressor and the changes in the mean consumption can be explained by it to some extent. Moreover, adjusted R-squared got higher again with a lower residual standard error.
 
-### Model 7
+## Model 7
 
 In addition to the pandemic variable,it was decided that a *lockdown* variable which specifies dates starting from the very first day of the strict prohibitions related with the spread of the Coronavirus, can be added to model since it is also expected this period may cause a change in the electricity consumption.
 
@@ -319,6 +331,8 @@ summary(fitlm_7)
 ```
 
 Although *lockdown* variable is not very effective in increasing the adjusted R-squared value or lowering the residual standard error, it has turned out to be significant to the model. Therefore, it will remain in the further steps of the analysis.
+
+---
 
 After reaching a considerably good adjusted R-squared value with this latest model, it is argued that checking the residuals of the model could be useful in determining what to implement next.
 
@@ -331,8 +345,6 @@ hist(fitlm_7$residuals, na.action = na.pass, main = "Histogram", xlab="Values", 
 bgtest(fitlm_7, order = 30)
 ```
 
-Looking at the plot of the residuals obtained, it can be seen that the residuals are distributed over a wide range of values due to a few outliers.It may be necessary to narrow this range by adding outlier variables which consider the values that are lower than 10% and higher than 95% of the residuals with the help of the quantile function.
-
 ```{r}
 
 daily_consumption1[, residuals_offit:=fitlm_7$residuals]
@@ -342,8 +354,6 @@ daily_consumption1[, small_outlier:= as.numeric(residuals_offit < q10) ]
 daily_consumption1[, large_outlier:= as.numeric(residuals_offit > q95) ]
 
 ```
-
-Also based on the ACF plot and the result from Breusch-Godfrey test, autocorrelation at lag 1 seems to be problematic, can be handled with different approaches, at least to some extent. One of them is to shift the residuals by one and add them to the daily consumption data to build a new model with the newly obtained shifted residuals as a regressor.
 
 ```{r}
 todays_index <- as.numeric(difftime((daily_consumption1$Date[1466]+1), daily_consumption$Date[1],units="days")) + 1
@@ -363,7 +373,7 @@ trydata <- daily_consumption1[-1,]
 lag1_manip <- lag1[1:(todays_index - 2)]
 ```
 
-### Model 8
+## Model 8
 
 The new model is established by adding three new variables (*small outliers* ,*large outliers* and *lagged residuals*) that were found to be necessary for the accuracy of the predictions.
 
@@ -385,6 +395,8 @@ summary(fittry)
 
 ```
 
+---
+
 Lastly added variables are all found to be significant by the model and the adjusted R-squared value has dramatically increased. Moreover, the residual standard error is halved.
 
 ```{r warning=FALSE}
@@ -395,6 +407,8 @@ hist(fittry$residuals, na.action = na.pass, main = "Histogram", xlab="Values", c
 ```
 
 It can be seen that the distribution of the residuals is quite similar to Normal as it's desired. Additionally, the mean is around zero with mostly constant variance still with some outliers that were not accounted for by the quantile function. Most of the lag values are within the desired interval shown with the blue dashed lines. However, there is still a significant  level of autocorrelation at lag 1. At this point, it may be reasonable to add the mean consumption itself as a new regressor; however, this approach can be challenging when making predictions since this study aims to make predictions for 2 days and one of the lagged values will solely be based on the prediction of the previous day.
+
+---
 
 To compare the last two models, residuals are plotted together:
 
@@ -433,7 +447,7 @@ grid.arrange(plot1, plot2, nrow=2)
 
 When the plot of the residuals are compared, it can be seen that the last model's residuals lie between a narrower range thanks to the added variables to Model 8. Based on the adjusted R-squared value, residual standard error, plot of residuals and ACF plot, it is decided that the Model 8 will be used to make predictions.
 
-### Forecasting
+## Forecasting
 
 In this part, two new rows are added to the data set. These rows represent the day that the submission is made and the day after (actual day to be forecasted); so, they take *Sys.Date()* and *Sys.Date() + 1* for their Date columns respectively. The other variables that are used in the model are filled as well, since their values are already known.
 
@@ -527,13 +541,13 @@ trydata2[is.na(mean_consumption)==T,mean_consumption:= prediction2 ]
 ```
 
 ```{r, layout="l-body-outset"}
-library(rmarkdown)
-paged_table(tail(trydata3))
+library(knitr)
+kable(tail(trydata3))
 ```
 
 After filling the empty slots for the day of the submission, a prediction was made. With the help of the newly forecasted value, the model was utilized again, since the lagged residuals had to be filled using the prediction from the previous day.
 
-### Transition from Daily to Hourly Data
+## Transition from Daily to Hourly Data
 
 In this step, forecasted daily mean consumption amounts are divided into hourly values since the aim of this study is to predict the electricity consumption for each hour. This transformation was done by utilizing the distributions from the same day of the last 4 weeks. A percentage distribution for an hour was obtained by dividing each hour's value to the daily total consumption for each day to be used. So, with the acquired percentage vector, daily predictions were distributed to 24 hours. 
 
@@ -598,13 +612,15 @@ ggplot() +
 
 ```
 
-## Results
+# Results
+
+---
 
 For this next part of the study, the obtained results are summarized and the model is evaluated by comparing the actual and predicted values of the estimated days.
 
 When the established models are examined from the beginning, it can be seen that the adjusted R-squared values of the models were constantly increasing with the last model's value being 0.9463. Similarly, the residual standard error was decreasing and the lowest value was obtained with the latest model. After obtaining the hourly values by distribution, the forecasts should be compared with the actual values.
 
-```{r fig.height=4, fig.width=11}
+```{r fig.height=4, fig.width=9}
 
 report_predictions<-c(32147.9148, 30403.212, 29157.1152, 28380.4786, 28111.8146, 28253.3444, 28832.7994, 30273.6707, 33746.5161, 37069.1613, 39009.986, 40194.7046, 39600.8526, 39834.6757, 40001.4422, 39377.6485, 39015.7467, 38853.8773, 38937.6408, 37990.9604, 36738.6712, 35926.9239, 35261.9248, 34086.0079,
                       29105.6777, 27526.1433, 26398.006, 25694.8954, 25451.6691, 25579.8035, 26104.4024, 27408.8679, 30553.1065, 33561.1927, 35318.2806, 36391.2381, 35853.4573, 36064.8344, 36215.8498, 35651.08, 35323.4316, 35177.0256, 35252.8411, 34395.7821, 33262.1884, 32527.0523, 31924.8956, 30860.2998,
@@ -772,7 +788,7 @@ summary(fittry_lag)
 
 By looking at the summary of the model, it appears that the adjusted R-squared value has increased and residual standard error has decreased significantly. Furthermore, all of the variables can be considered as significant to the model, with only one of them having a p-value between 0.1 and 0.05. It may be useful to look at the autocorrelation function of the residuals and compare with the actual model.
 
-```{r fig.height=3, fig.width=11}
+```{r fig.height=3, fig.width=9}
 plot3<-ggAcf(fittry$residuals, col = "orangered", lag.max = 70, size=1) +  
   xlab('Lag') +
   ylab('ACF') + 
