@@ -14,8 +14,11 @@ You can reach my homework regarding data visualization and interpretation by cli
 ### Homework 2 (18.12.2020)
 You can reach my homework regarding the correlation inquiry of a set of data by clicking [**here**](Files/HW2.html).
 
-### Homework 3 (11.01.2020)
-You can reach my homework regarding time series regression usage for predictions by clicking [**here**](Files/HW3.html).
+### Homework 3 (11.01.2021)
+You can reach my homework regarding linear regression usage for predictions by clicking [**here**](Files/HW3.html).
 
-### Homework 4 (29.01.2020)
-You can reach my homework regarding time series decomposition and ARIMA models by clicking [**here**](Files/HW4.html).
+### Homework 4 (29.01.2021)
+You can reach my homework regarding the time series analysis of a set of data by clicking [**here**](Files/HW4.html).
+
+### Project (15.02.2021)
+You can reach the report of our project by clicking [**here**](Files/ProjectFinalVersion.html).
